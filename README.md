@@ -61,6 +61,12 @@ Here is the full configuration specification:
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
 
+[client.transport]
+type = "tcp" # Necessary if multiple transport blocks present. Possibile values: ["tcp", "tls"]. Default: "tcp"
+[client.transport.tls] # Necessary if `type` is "tls"
+trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
+hostname = "example.com" # Optional. The hostname that the client uses to validate the certificate. If not set, fallback to `client.remote_addr`
+
 [client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 token = "whatever" # Necessary if `client.default_token` not set
 local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
@@ -71,6 +77,12 @@ local_addr = "127.0.0.1:1082"
 [server]
 bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change. 
 default_token = "default_token_if_not_specify" # Optional
+
+[server.transport]
+type = "tcp" # Same as `[client.transport]`
+[server.transport.tls]
+pkcs12 = "identify.pfx" # Necessary. pkcs12 file of server's certificate and private key
+pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 
 [server.services.service1] # The service name must be identical to the client side
 token = "whatever" # Necesary if `server.default_token` not set
@@ -95,6 +107,5 @@ See also [Benchmark](./doc/benchmark.md).
 `rathole` is in active development. A load of features is on the way:
 
 - [ ] UDP support
-- [ ] TLS transport
 - [ ] Hot reloading
 - [ ] HTTP APIs for configuration

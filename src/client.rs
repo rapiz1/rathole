@@ -1,50 +1,68 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::config::{ClientConfig, ClientServiceConfig, Config};
+use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
 use crate::protocol::{
-    self, read_hello, DataChannelCmd,
+    self, Ack, Auth, ControlChannelCmd, DataChannelCmd,
     Hello::{self, *},
     CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
-use crate::protocol::{read_data_cmd, Ack, Auth, ControlChannelCmd};
+use crate::protocol::{read_ack, read_control_cmd, read_data_cmd, read_hello};
+use crate::transport::{TcpTransport, TlsTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
-use tokio::io;
+
+use tokio::io::{copy_bidirectional, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio::sync::oneshot;
 use tokio::time::{self, Duration};
-use tokio::{self, io::AsyncWriteExt, net::TcpStream};
 use tracing::{debug, error, info, instrument, Instrument, Span};
 
 pub async fn run_client(config: &Config) -> Result<()> {
-    let mut client = Client::from(config)?;
-    client.run().await
+    let config = match &config.client {
+        Some(v) => v,
+        None => {
+            return Err(anyhow!("Try to run as a client, but the configuration is missing. Please add the `[client]` block"))
+        }
+    };
+
+    match config.transport.transport_type {
+        TransportType::Tcp => {
+            let mut client = Client::<TcpTransport>::from(&config).await?;
+            client.run().await
+        }
+        TransportType::Tls => {
+            let mut client = Client::<TlsTransport>::from(&config).await?;
+            client.run().await
+        }
+    }
 }
 
 type ServiceDigest = protocol::Digest;
 type Nonce = protocol::Digest;
 
-struct Client<'a> {
+struct Client<'a, T: Transport> {
     config: &'a ClientConfig,
     service_handles: HashMap<String, ControlChannelHandle>,
+    transport: Arc<T>,
 }
 
-impl<'a> Client<'a> {
-    fn from(config: &'a Config) -> Result<Client> {
-        if let Some(config) = &config.client {
-            Ok(Client {
-                config,
-                service_handles: HashMap::new(),
-            })
-        } else {
-            Err(anyhow!("Try to run as a client, but the configuration is missing. Please add the `[client]` block"))
-        }
+impl<'a, T: 'static + Transport> Client<'a, T> {
+    async fn from(config: &'a ClientConfig) -> Result<Client<'a, T>> {
+        Ok(Client {
+            config,
+            service_handles: HashMap::new(),
+            transport: Arc::new(*T::new(&config.transport).await?),
+        })
     }
 
     async fn run(&mut self) -> Result<()> {
         for (name, config) in &self.config.services {
-            let handle =
-                ControlChannelHandle::new((*config).clone(), self.config.remote_addr.clone());
+            let handle = ControlChannelHandle::new(
+                (*config).clone(),
+                self.config.remote_addr.clone(),
+                self.transport.clone(),
+            );
             self.service_handles.insert(name.clone(), handle);
         }
 
@@ -71,13 +89,14 @@ impl<'a> Client<'a> {
     }
 }
 
-struct RunDataChannelArgs {
+struct RunDataChannelArgs<T: Transport> {
     session_key: Nonce,
     remote_addr: String,
     local_addr: String,
+    connector: Arc<T>,
 }
 
-async fn run_data_channel(args: Arc<RunDataChannelArgs>) -> Result<()> {
+async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Result<()> {
     // Retry at least every 100ms, at most for 10 seconds
     let backoff = ExponentialBackoff {
         max_interval: Duration::from_millis(100),
@@ -86,8 +105,10 @@ async fn run_data_channel(args: Arc<RunDataChannelArgs>) -> Result<()> {
     };
 
     // Connect to remote_addr
-    let mut conn = backoff::future::retry(backoff, || async {
-        Ok(TcpStream::connect(&args.remote_addr)
+    let mut conn: T::Stream = backoff::future::retry(backoff, || async {
+        Ok(args
+            .connector
+            .connect(&args.remote_addr)
             .await
             .with_context(|| "Failed to connect to remote_addr")?)
     })
@@ -104,27 +125,30 @@ async fn run_data_channel(args: Arc<RunDataChannelArgs>) -> Result<()> {
             let mut local = TcpStream::connect(&args.local_addr)
                 .await
                 .with_context(|| "Failed to conenct to local_addr")?;
-            let _ = io::copy_bidirectional(&mut conn, &mut local).await;
+            let _ = copy_bidirectional(&mut conn, &mut local).await;
         }
     }
     Ok(())
 }
 
-struct ControlChannel {
+struct ControlChannel<T: Transport> {
     digest: ServiceDigest,
     service: ClientServiceConfig,
     shutdown_rx: oneshot::Receiver<u8>,
     remote_addr: String,
+    transport: Arc<T>,
 }
 
 struct ControlChannelHandle {
     shutdown_tx: oneshot::Sender<u8>,
 }
 
-impl ControlChannel {
+impl<T: 'static + Transport> ControlChannel<T> {
     #[instrument(skip(self), fields(service=%self.service.name))]
     async fn run(&mut self) -> Result<()> {
-        let mut conn = TcpStream::connect(&self.remote_addr)
+        let mut conn = self
+            .transport
+            .connect(&self.remote_addr)
             .await
             .with_context(|| format!("Failed to connect to the server: {}", &self.remote_addr))?;
 
@@ -134,7 +158,7 @@ impl ControlChannel {
         conn.write_all(&bincode::serialize(&hello_send).unwrap())
             .await?;
 
-        // Read hello
+        // Read hello))
         let nonce = match read_hello(&mut conn)
             .await
             .with_context(|| "Failed to read hello from the server")?
@@ -154,7 +178,7 @@ impl ControlChannel {
         conn.write_all(&bincode::serialize(&auth).unwrap()).await?;
 
         // Read ack
-        match protocol::read_ack(&mut conn).await? {
+        match read_ack(&mut conn).await? {
             Ack::Ok => {}
             v => {
                 return Err(anyhow!("{}", v))
@@ -171,11 +195,12 @@ impl ControlChannel {
             session_key,
             remote_addr,
             local_addr,
+            connector: self.transport.clone(),
         });
 
         loop {
             tokio::select! {
-                val = protocol::read_control_cmd(&mut conn) => {
+                val = read_control_cmd(&mut conn) => {
                     let val = val?;
                     debug!( "Received {:?}", val);
                     match val {
@@ -202,7 +227,11 @@ impl ControlChannel {
 
 impl ControlChannelHandle {
     #[instrument(skip_all, fields(service = %service.name))]
-    fn new(service: ClientServiceConfig, remote_addr: String) -> ControlChannelHandle {
+    fn new<T: 'static + Transport>(
+        service: ClientServiceConfig,
+        remote_addr: String,
+        transport: Arc<T>,
+    ) -> ControlChannelHandle {
         let digest = protocol::digest(service.name.as_bytes());
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let mut s = ControlChannel {
@@ -210,6 +239,7 @@ impl ControlChannelHandle {
             service,
             shutdown_rx,
             remote_addr,
+            transport,
         };
 
         tokio::spawn(

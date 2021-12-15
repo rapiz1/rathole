@@ -1,12 +1,9 @@
 pub const HASH_WIDTH_IN_BYTES: usize = 32;
+
 use anyhow::{Context, Result};
-use bincode;
-
 use lazy_static::lazy_static;
-
 use serde::{Deserialize, Serialize};
-use tokio::io::AsyncReadExt;
-use tokio::net::TcpStream;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
 
 type ProtocolVersion = u8;
 const PROTO_V0: u8 = 0u8;
@@ -95,7 +92,7 @@ lazy_static! {
     static ref PACKET_LEN: PacketLength = PacketLength::new();
 }
 
-pub async fn read_hello(conn: &mut TcpStream) -> Result<Hello> {
+pub async fn read_hello<T: AsyncRead + AsyncWrite + Unpin>(conn: &mut T) -> Result<Hello> {
     let mut buf = vec![0u8; PACKET_LEN.hello];
     conn.read_exact(&mut buf)
         .await
@@ -104,7 +101,7 @@ pub async fn read_hello(conn: &mut TcpStream) -> Result<Hello> {
     Ok(hello)
 }
 
-pub async fn read_auth(conn: &mut TcpStream) -> Result<Auth> {
+pub async fn read_auth<T: AsyncRead + AsyncWrite + Unpin>(conn: &mut T) -> Result<Auth> {
     let mut buf = vec![0u8; PACKET_LEN.auth];
     conn.read_exact(&mut buf)
         .await
@@ -112,7 +109,7 @@ pub async fn read_auth(conn: &mut TcpStream) -> Result<Auth> {
     bincode::deserialize(&buf).with_context(|| "Failed to deserialize auth")
 }
 
-pub async fn read_ack(conn: &mut TcpStream) -> Result<Ack> {
+pub async fn read_ack<T: AsyncRead + AsyncWrite + Unpin>(conn: &mut T) -> Result<Ack> {
     let mut bytes = vec![0u8; PACKET_LEN.ack];
     conn.read_exact(&mut bytes)
         .await
@@ -120,7 +117,9 @@ pub async fn read_ack(conn: &mut TcpStream) -> Result<Ack> {
     bincode::deserialize(&bytes).with_context(|| "Failed to deserialize ack")
 }
 
-pub async fn read_control_cmd(conn: &mut TcpStream) -> Result<ControlChannelCmd> {
+pub async fn read_control_cmd<T: AsyncRead + AsyncWrite + Unpin>(
+    conn: &mut T,
+) -> Result<ControlChannelCmd> {
     let mut bytes = vec![0u8; PACKET_LEN.c_cmd];
     conn.read_exact(&mut bytes)
         .await
@@ -128,7 +127,9 @@ pub async fn read_control_cmd(conn: &mut TcpStream) -> Result<ControlChannelCmd>
     bincode::deserialize(&bytes).with_context(|| "Failed to deserialize control cmd")
 }
 
-pub async fn read_data_cmd(conn: &mut TcpStream) -> Result<DataChannelCmd> {
+pub async fn read_data_cmd<T: AsyncRead + AsyncWrite + Unpin>(
+    conn: &mut T,
+) -> Result<DataChannelCmd> {
     let mut bytes = vec![0u8; PACKET_LEN.d_cmd];
     conn.read_exact(&mut bytes)
         .await
