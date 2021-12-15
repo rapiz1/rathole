@@ -5,6 +5,7 @@ mod helper;
 mod multi_map;
 mod protocol;
 mod server;
+mod transport;
 
 pub use cli::Cli;
 pub use config::Config;
