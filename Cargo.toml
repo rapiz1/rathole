@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Yujia Qiao <code@rapiz.me>"]
 description = "A reverse proxy for NAT traversal"
+license-file = "LICENSE"
+repository = "https://github.com/rapiz1/rathole"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [profile.bench]
