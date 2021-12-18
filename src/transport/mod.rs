@@ -3,10 +3,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::fmt::Debug;
 use std::net::SocketAddr;
-use tokio::{
-    io::{AsyncRead, AsyncWrite},
-    net::ToSocketAddrs,
-};
+use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::net::ToSocketAddrs;
 
 #[async_trait]
 pub trait Transport: Debug + Send + Sync {
@@ -16,7 +14,7 @@ pub trait Transport: Debug + Send + Sync {
     async fn new(config: &TransportConfig) -> Result<Box<Self>>;
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor>;
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)>;
-    async fn connect(&self, addr: &String) -> Result<Self::Stream>;
+    async fn connect(&self, addr: &str) -> Result<Self::Stream>;
 }
 
 mod tcp;

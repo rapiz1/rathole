@@ -1,20 +1,14 @@
 use std::net::SocketAddr;
 
 use super::Transport;
-use crate::{
-    config::{TlsConfig, TransportConfig},
-    helper::set_tcp_keepalive,
-};
+use crate::config::{TlsConfig, TransportConfig};
+use crate::helper::set_tcp_keepalive;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use tokio::{
-    fs,
-    net::{TcpListener, TcpStream, ToSocketAddrs},
-};
-use tokio_native_tls::{
-    native_tls::{self, Certificate, Identity},
-    TlsAcceptor, TlsConnector, TlsStream,
-};
+use tokio::fs;
+use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use tokio_native_tls::native_tls::{self, Certificate, Identity};
+use tokio_native_tls::{TlsAcceptor, TlsConnector, TlsStream};
 use tracing::error;
 
 #[derive(Debug)]
@@ -39,7 +33,7 @@ impl Transport for TlsTransport {
         let connector = match config.trusted_root.as_ref() {
             Some(path) => {
                 let s = fs::read_to_string(path).await?;
-                let cert = Certificate::from_pem(&s.as_bytes())?;
+                let cert = Certificate::from_pem(s.as_bytes())?;
                 let connector = native_tls::TlsConnector::builder()
                     .add_root_certificate(cert)
                     .build()?;
@@ -74,7 +68,7 @@ impl Transport for TlsTransport {
         Ok((conn, addr))
     }
 
-    async fn connect(&self, addr: &String) -> Result<Self::Stream> {
+    async fn connect(&self, addr: &str) -> Result<Self::Stream> {
         let conn = TcpStream::connect(&addr).await?;
         if let Err(e) = set_tcp_keepalive(&conn) {
             error!(

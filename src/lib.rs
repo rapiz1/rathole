@@ -26,7 +26,7 @@ pub async fn run(args: &Cli) -> Result<()> {
     // Raise `nofile` limit on linux and mac
     fdlimit::raise_fd_limit();
 
-    match determine_run_mode(&config, &args) {
+    match determine_run_mode(&config, args) {
         RunMode::Undetermine => Err(anyhow!("Cannot determine running as a server or a client")),
         RunMode::Client => run_client(&config).await,
         RunMode::Server => run_server(&config).await,
@@ -44,20 +44,16 @@ fn determine_run_mode(config: &Config, args: &Cli) -> RunMode {
     use RunMode::*;
     if args.client && args.server {
         Undetermine
+    } else if args.client {
+        Client
+    } else if args.server {
+        Server
+    } else if config.client.is_some() && config.server.is_none() {
+        Client
+    } else if config.server.is_some() && config.client.is_none() {
+        Server
     } else {
-        if args.client {
-            Client
-        } else if args.server {
-            Server
-        } else {
-            if config.server.is_some() && config.client.is_none() {
-                Server
-            } else if config.client.is_some() && config.server.is_none() {
-                Client
-            } else {
-                Undetermine
-            }
-        }
+        Undetermine
     }
 }
 
