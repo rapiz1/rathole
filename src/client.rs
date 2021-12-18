@@ -2,12 +2,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
+use crate::protocol::Hello::{self, *};
 use crate::protocol::{
-    self, Ack, Auth, ControlChannelCmd, DataChannelCmd,
-    Hello::{self, *},
-    CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
+    self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
+    DataChannelCmd, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
-use crate::protocol::{read_ack, read_control_cmd, read_data_cmd, read_hello};
 use crate::transport::{TcpTransport, TlsTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
@@ -28,11 +27,11 @@ pub async fn run_client(config: &Config) -> Result<()> {
 
     match config.transport.transport_type {
         TransportType::Tcp => {
-            let mut client = Client::<TcpTransport>::from(&config).await?;
+            let mut client = Client::<TcpTransport>::from(config).await?;
             client.run().await
         }
         TransportType::Tls => {
-            let mut client = Client::<TlsTransport>::from(&config).await?;
+            let mut client = Client::<TlsTransport>::from(config).await?;
             client.run().await
         }
     }
@@ -244,19 +243,14 @@ impl ControlChannelHandle {
 
         tokio::spawn(
             async move {
-                loop {
-                    if let Err(err) = s
-                        .run()
-                        .await
-                        .with_context(|| "Failed to run the control channel")
-                    {
-                        let duration = Duration::from_secs(2);
-                        error!("{:?}\n\nRetry in {:?}...", err, duration);
-                        time::sleep(duration).await;
-                    } else {
-                        // Shutdown
-                        break;
-                    }
+                while let Err(err) = s
+                    .run()
+                    .await
+                    .with_context(|| "Failed to run the control channel")
+                {
+                    let duration = Duration::from_secs(2);
+                    error!("{:?}\n\nRetry in {:?}...", err, duration);
+                    time::sleep(duration).await;
                 }
             }
             .instrument(Span::current()),

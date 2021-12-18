@@ -1,4 +1,5 @@
-use crate::{config::TransportConfig, helper::set_tcp_keepalive};
+use crate::config::TransportConfig;
+use crate::helper::set_tcp_keepalive;
 
 use super::Transport;
 use anyhow::Result;
@@ -28,7 +29,7 @@ impl Transport for TcpTransport {
         Ok((s, addr))
     }
 
-    async fn connect(&self, addr: &String) -> Result<Self::Stream> {
+    async fn connect(&self, addr: &str) -> Result<Self::Stream> {
         let s = TcpStream::connect(addr).await?;
         if let Err(e) = set_tcp_keepalive(&s) {
             error!(

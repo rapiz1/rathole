@@ -1,13 +1,13 @@
 use crate::config::{Config, ServerConfig, ServerServiceConfig, TransportType};
 use crate::multi_map::MultiMap;
+use crate::protocol::Hello::{ControlChannelHello, DataChannelHello};
 use crate::protocol::{
-    self, Ack, ControlChannelCmd, DataChannelCmd, Hello, Hello::ControlChannelHello,
-    Hello::DataChannelHello, HASH_WIDTH_IN_BYTES,
+    self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, HASH_WIDTH_IN_BYTES,
 };
-use crate::protocol::{read_auth, read_hello};
 use crate::transport::{TcpTransport, TlsTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
-use backoff::{backoff::Backoff, ExponentialBackoff};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
 use rand::RngCore;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -15,8 +15,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{self, copy_bidirectional, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::mpsc;
-use tokio::sync::{oneshot, RwLock};
+use tokio::sync::{mpsc, oneshot, RwLock};
 use tokio::time;
 use tracing::{debug, error, info, info_span, warn, Instrument};
 
@@ -190,9 +189,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
     concat.append(&mut nonce);
 
     // Read auth
-    let d = match read_auth(&mut conn).await? {
-        protocol::Auth(v) => v,
-    };
+    let protocol::Auth(d) = read_auth(&mut conn).await?;
 
     // Validate
     let session_key = protocol::digest(&concat);
@@ -259,13 +256,13 @@ struct ControlChannel<T: Transport> {
 }
 
 struct ControlChannelHandle<T: Transport> {
-    shutdown_tx: oneshot::Sender<bool>,
+    _shutdown_tx: oneshot::Sender<bool>,
     conn_pool: ConnectionPoolHandle<T>,
 }
 
 impl<T: 'static + Transport> ControlChannelHandle<T> {
     fn new(conn: T::Stream, service: ServerServiceConfig) -> ControlChannelHandle<T> {
-        let (shutdown_tx, shutdown_rx) = oneshot::channel::<bool>();
+        let (_shutdown_tx, shutdown_rx) = oneshot::channel::<bool>();
         let name = service.name.clone();
         let conn_pool = ConnectionPoolHandle::new();
         let actor: ControlChannel<T> = ControlChannel {
@@ -282,7 +279,7 @@ impl<T: 'static + Transport> ControlChannelHandle<T> {
         });
 
         ControlChannelHandle {
-            shutdown_tx,
+            _shutdown_tx,
             conn_pool,
         }
     }
@@ -309,7 +306,7 @@ impl<T: Transport> ControlChannel<T> {
         let (data_req_tx, mut data_req_rx) = mpsc::unbounded_channel::<u8>();
         tokio::spawn(async move {
             let cmd = bincode::serialize(&ControlChannelCmd::CreateDataChannel).unwrap();
-            while let Some(_) = data_req_rx.recv().await {
+            while data_req_rx.recv().await.is_some() {
                 if self.conn.write_all(&cmd).await.is_err() {
                     break;
                 }
@@ -396,18 +393,14 @@ impl<T: 'static + Transport> ConnectionPoolHandle<T> {
 impl<T: Transport> ConnectionPool<T> {
     #[tracing::instrument]
     async fn run(mut self) {
-        loop {
-            if let Some(mut visitor) = self.visitor_rx.recv().await {
-                if let Some(mut ch) = self.data_ch_rx.recv().await {
-                    tokio::spawn(async move {
-                        let cmd = bincode::serialize(&DataChannelCmd::StartForward).unwrap();
-                        if ch.write_all(&cmd).await.is_ok() {
-                            let _ = copy_bidirectional(&mut ch, &mut visitor).await;
-                        }
-                    });
-                } else {
-                    break;
-                }
+        while let Some(mut visitor) = self.visitor_rx.recv().await {
+            if let Some(mut ch) = self.data_ch_rx.recv().await {
+                tokio::spawn(async move {
+                    let cmd = bincode::serialize(&DataChannelCmd::StartForward).unwrap();
+                    if ch.write_all(&cmd).await.is_ok() {
+                        let _ = copy_bidirectional(&mut ch, &mut visitor).await;
+                    }
+                });
             } else {
                 break;
             }

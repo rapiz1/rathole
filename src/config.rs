@@ -1,9 +1,8 @@
 use anyhow::{anyhow, bail, Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::Path;
 use tokio::fs;
-use toml;
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum TransportType {
@@ -81,8 +80,7 @@ pub struct Config {
 
 impl Config {
     fn from_str(s: &str) -> Result<Config> {
-        let mut config: Config =
-            toml::from_str(&s).with_context(|| "Failed to parse the config")?;
+        let mut config: Config = toml::from_str(s).with_context(|| "Failed to parse the config")?;
 
         if let Some(server) = config.server.as_mut() {
             Config::validate_server_config(server)?;
@@ -158,7 +156,7 @@ impl Config {
         }
     }
 
-    pub async fn from_file(path: &PathBuf) -> Result<Config> {
+    pub async fn from_file(path: &Path) -> Result<Config> {
         let s: String = fs::read_to_string(path)
             .await
             .with_context(|| format!("Failed to read the config {:?}", path))?;
