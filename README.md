@@ -55,6 +55,8 @@ So you can `ssh myserver.com:5202` to ssh to your NAS.
 
 But the `[client]` and `[server]` block can also be put in one file. Then on the server side, run `rathole --server config.toml` and on the client side, run `rathole --client config.toml` to explictly tell `rathole` the running mode.
 
+Some configuration examples are provided under [examples](./examples).
+
 Here is the full configuration specification:
 ```toml
 [client]
