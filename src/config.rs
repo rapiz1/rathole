@@ -177,14 +177,14 @@ mod tests {
 
     #[test]
     fn test_mimic_client_config() -> Result<()> {
-        let s = fs::read_to_string("./example/mimic/client.toml").unwrap();
+        let s = fs::read_to_string("./example/minimal/client.toml").unwrap();
         Config::from_str(&s)?;
         Ok(())
     }
 
     #[test]
     fn test_mimic_server_config() -> Result<()> {
-        let s = fs::read_to_string("./example/mimic/server.toml").unwrap();
+        let s = fs::read_to_string("./example/minimal/server.toml").unwrap();
         Config::from_str(&s)?;
         Ok(())
     }
