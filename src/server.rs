@@ -321,6 +321,7 @@ impl<T: Transport> ControlChannel<T> {
 
         let mut backoff = ExponentialBackoff {
             max_interval: Duration::from_secs(1),
+            max_elapsed_time: None,
             ..Default::default()
         };
         loop {
