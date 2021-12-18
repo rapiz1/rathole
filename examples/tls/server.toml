@@ -10,4 +10,3 @@ pkcs12_password = "1234"
 
 [server.services.foo1]
 bind_addr = "0.0.0.0:5202"
-

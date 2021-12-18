@@ -1,0 +1,11 @@
+[server]
+bind_addr = "0.0.0.0:2333" 
+
+[server.transport]
+type = "tls" 
+[server.transport.tls] 
+pkcs12_password = "password" 
+
+[server.services.service1] 
+token = "whatever" 
+bind_addr = "0.0.0.0:8081" 

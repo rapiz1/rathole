@@ -1,0 +1,9 @@
+[client]
+remote_addr = "example.com:2333"
+
+[client.transport]
+type = "tls" 
+
+[client.services.service1] 
+token = "whatever" 
+local_addr = "127.0.0.1:1081" 
