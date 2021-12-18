@@ -169,21 +169,150 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+    use std::{fs, path::PathBuf};
 
     use anyhow::Result;
 
+    fn list_config_files<T: AsRef<Path>>(root: T) -> Result<Vec<PathBuf>> {
+        let mut files = Vec::new();
+        for entry in fs::read_dir(root)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_file() {
+                files.push(path);
+            } else if path.is_dir() {
+                files.append(&mut list_config_files(path)?);
+            }
+        }
+        Ok(files)
+    }
+
+    fn get_all_example_config() -> Result<Vec<PathBuf>> {
+        Ok(list_config_files("./examples")?
+            .into_iter()
+            .filter(|x| x.ends_with(".toml"))
+            .collect())
+    }
+
     #[test]
-    fn test_mimic_client_config() -> Result<()> {
-        let s = fs::read_to_string("./example/minimal/client.toml").unwrap();
-        Config::from_str(&s)?;
+    fn test_example_config() -> Result<()> {
+        let paths = get_all_example_config()?;
+        for p in paths {
+            let s = fs::read_to_string(p)?;
+            Config::from_str(&s)?;
+        }
         Ok(())
     }
 
     #[test]
-    fn test_mimic_server_config() -> Result<()> {
-        let s = fs::read_to_string("./example/minimal/server.toml").unwrap();
-        Config::from_str(&s)?;
+    fn test_valid_config() -> Result<()> {
+        let paths = list_config_files("tests/config_test/valid_config")?;
+        for p in paths {
+            let s = fs::read_to_string(p)?;
+            Config::from_str(&s)?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_invalid_config() -> Result<()> {
+        let paths = list_config_files("tests/config_test/invalid_config")?;
+        for p in paths {
+            let s = fs::read_to_string(p)?;
+            assert!(Config::from_str(&s).is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn test_validate_server_config() -> Result<()> {
+        let mut cfg = ServerConfig::default();
+
+        cfg.services.insert(
+            "foo1".into(),
+            ServerServiceConfig {
+                name: "foo1".into(),
+                bind_addr: "127.0.0.1:80".into(),
+                token: None,
+            },
+        );
+
+        // Missing the token
+        assert!(Config::validate_server_config(&mut cfg).is_err());
+
+        // Use the default token
+        cfg.default_token = Some("123".into());
+        assert!(Config::validate_server_config(&mut cfg).is_ok());
+        assert_eq!(
+            cfg.services
+                .get("foo1")
+                .as_ref()
+                .unwrap()
+                .token
+                .as_ref()
+                .unwrap(),
+            "123"
+        );
+
+        // The default token won't override the service token
+        cfg.services.get_mut("foo1").unwrap().token = Some("4".into());
+        assert!(Config::validate_server_config(&mut cfg).is_ok());
+        assert_eq!(
+            cfg.services
+                .get("foo1")
+                .as_ref()
+                .unwrap()
+                .token
+                .as_ref()
+                .unwrap(),
+            "4"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_validate_client_config() -> Result<()> {
+        let mut cfg = ClientConfig::default();
+
+        cfg.services.insert(
+            "foo1".into(),
+            ClientServiceConfig {
+                name: "foo1".into(),
+                local_addr: "127.0.0.1:80".into(),
+                token: None,
+            },
+        );
+
+        // Missing the token
+        assert!(Config::validate_client_config(&mut cfg).is_err());
+
+        // Use the default token
+        cfg.default_token = Some("123".into());
+        assert!(Config::validate_client_config(&mut cfg).is_ok());
+        assert_eq!(
+            cfg.services
+                .get("foo1")
+                .as_ref()
+                .unwrap()
+                .token
+                .as_ref()
+                .unwrap(),
+            "123"
+        );
+
+        // The default token won't override the service token
+        cfg.services.get_mut("foo1").unwrap().token = Some("4".into());
+        assert!(Config::validate_client_config(&mut cfg).is_ok());
+        assert_eq!(
+            cfg.services
+                .get("foo1")
+                .as_ref()
+                .unwrap()
+                .token
+                .as_ref()
+                .unwrap(),
+            "4"
+        );
         Ok(())
     }
 }

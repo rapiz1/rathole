@@ -4,4 +4,3 @@ default_token = "123"
 
 [server.services.foo1]
 bind_addr = "0.0.0.0:5202"
-

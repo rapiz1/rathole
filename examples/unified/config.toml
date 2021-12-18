@@ -1,0 +1,15 @@
+# rathole configuration can put in one file as long as running mode is specified via cli
+
+[client]
+remote_addr = "localhost:2333"
+default_token = "123"
+
+[client.services.foo1]
+local_addr = "127.0.0.1:80"
+
+[server]
+bind_addr = "0.0.0.0:2333"
+default_token = "123"
+
+[server.services.foo1]
+bind_addr = "0.0.0.0:5202"

@@ -1,0 +1,33 @@
+[client]
+remote_addr = "example.com:2333" 
+default_token = "default_token_if_not_specify" 
+
+[client.transport]
+type = "tcp" 
+[client.transport.tls] 
+trusted_root = "ca.pem" 
+hostname = "example.com" 
+
+[client.services.service1] 
+token = "whatever" 
+local_addr = "127.0.0.1:1081" 
+
+[client.services.service2] 
+local_addr = "127.0.0.1:1082"
+
+[server]
+bind_addr = "0.0.0.0:2333" 
+default_token = "default_token_if_not_specify" 
+
+[server.transport]
+type = "tls" 
+[server.transport.tls] 
+pkcs12 = "identify.pfx" 
+pkcs12_password = "password" 
+
+[server.services.service1] 
+token = "whatever" 
+bind_addr = "0.0.0.0:8081" 
+
+[server.services.service2] 
+bind_addr = "0.0.0.1:8082"
