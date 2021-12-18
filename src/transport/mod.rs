@@ -6,6 +6,7 @@ use std::net::SocketAddr;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::ToSocketAddrs;
 
+// Specify a transport layer, like TCP, TLS
 #[async_trait]
 pub trait Transport: Debug + Send + Sync {
     type Acceptor: Send + Sync;

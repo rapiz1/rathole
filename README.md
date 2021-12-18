@@ -3,7 +3,7 @@
 
 A fast and stable reverse proxy for NAT traversal, written in Rust
 
-rathole, like frp, can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
+rathole, like [frp](https://github.com/fatedier/frp), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
 
 ## Quickstart
 
@@ -62,7 +62,7 @@ remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
 
 [client.transport]
-type = "tcp" # Necessary if multiple transport blocks present. Possibile values: ["tcp", "tls"]. Default: "tcp"
+type = "tcp" # Optional. Possibile values: ["tcp", "tls"]. Default: "tcp"
 [client.transport.tls] # Necessary if `type` is "tls"
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
 hostname = "example.com" # Optional. The hostname that the client uses to validate the certificate. If not set, fallback to `client.remote_addr`
@@ -80,7 +80,7 @@ default_token = "default_token_if_not_specify" # Optional
 
 [server.transport]
 type = "tcp" # Same as `[client.transport]`
-[server.transport.tls]
+[server.transport.tls] # Necessary if `type` is "tls"
 pkcs12 = "identify.pfx" # Necessary. pkcs12 file of server's certificate and private key
 pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 
@@ -92,9 +92,9 @@ bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at
 bind_addr = "0.0.0.1:8082"
 ```
 
-# Benchmark
+## Benchmark
 
-rathole has similiar latency to frp, but can handle more connections. Also it can provide much better bandwidth than frp.
+rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle more connections. Also it can provide much better bandwidth than frp.
 
 See also [Benchmark](./doc/benchmark.md).
 
@@ -102,10 +102,10 @@ See also [Benchmark](./doc/benchmark.md).
 
 ![tcp_latency](./doc/img/tcp_latency.svg)
 
-# Development
+## Development Status
 
 `rathole` is in active development. A load of features is on the way:
-
+- [x] TLS support
 - [ ] UDP support
 - [ ] Hot reloading
 - [ ] HTTP APIs for configuration
