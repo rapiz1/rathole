@@ -6,6 +6,9 @@ struct RawItem<K1, K2, V>(*mut (K1, K2, V));
 unsafe impl<K1, K2, V> Send for RawItem<K1, K2, V> {}
 unsafe impl<K1, K2, V> Sync for RawItem<K1, K2, V> {}
 
+/// MultiMap is a hash map that can index an item by two keys
+/// For example, after an item with key (a, b) is insert, `map.get1(a)` and
+/// `map.get2(b)` both returns the item. Likewise the `remove1` and `remove2`.
 pub struct MultiMap<K1, K2, V> {
     map1: HashMap<Key<K1>, RawItem<K1, K2, V>>,
     map2: HashMap<Key<K2>, RawItem<K1, K2, V>>,

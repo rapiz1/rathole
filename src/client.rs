@@ -17,6 +17,7 @@ use tokio::sync::oneshot;
 use tokio::time::{self, Duration};
 use tracing::{debug, error, info, instrument, Instrument, Span};
 
+// The entrypoint of running a client
 pub async fn run_client(config: &Config) -> Result<()> {
     let config = match &config.client {
         Some(v) => v,
@@ -40,6 +41,7 @@ pub async fn run_client(config: &Config) -> Result<()> {
 type ServiceDigest = protocol::Digest;
 type Nonce = protocol::Digest;
 
+// Holds the state of a client
 struct Client<'a, T: Transport> {
     config: &'a ClientConfig,
     service_handles: HashMap<String, ControlChannelHandle>,
@@ -47,6 +49,7 @@ struct Client<'a, T: Transport> {
 }
 
 impl<'a, T: 'static + Transport> Client<'a, T> {
+    // Create a Client from `[client]` config block
     async fn from(config: &'a ClientConfig) -> Result<Client<'a, T>> {
         Ok(Client {
             config,
@@ -55,8 +58,10 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
         })
     }
 
+    // The entrypoint of Client
     async fn run(&mut self) -> Result<()> {
         for (name, config) in &self.config.services {
+            // Create a control channel for each service defined
             let handle = ControlChannelHandle::new(
                 (*config).clone(),
                 self.config.remote_addr.clone(),
@@ -65,6 +70,8 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
             self.service_handles.insert(name.clone(), handle);
         }
 
+        // TODO: Maybe wait for a config change signal for hot reloading
+        // Wait for the shutdown signal
         loop {
             tokio::select! {
                 val = tokio::signal::ctrl_c() => {
@@ -130,14 +137,17 @@ async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Res
     Ok(())
 }
 
+// Control channel, using T as the transport layer
 struct ControlChannel<T: Transport> {
-    digest: ServiceDigest,
-    service: ClientServiceConfig,
-    shutdown_rx: oneshot::Receiver<u8>,
-    remote_addr: String,
-    transport: Arc<T>,
+    digest: ServiceDigest,              // SHA256 of the service name
+    service: ClientServiceConfig,       // `[client.services.foo]` config block
+    shutdown_rx: oneshot::Receiver<u8>, // Receives the shutdown signal
+    remote_addr: String,                // `client.remote_addr`
+    transport: Arc<T>,                  // Wrapper around the transport layer
 }
 
+// Handle of a control channel
+// Dropping it will also drop the actual control channel
 struct ControlChannelHandle {
     shutdown_tx: oneshot::Sender<u8>,
 }
