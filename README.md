@@ -1,5 +1,5 @@
 # rathole
-![rathole-logo](./doc/img/rathole-logo.png)
+![rathole-logo](./docs/img/rathole-logo.png)
 
 A fast and stable reverse proxy for NAT traversal, written in Rust
 
@@ -96,11 +96,11 @@ bind_addr = "0.0.0.1:8082"
 
 rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle more connections. Also it can provide much better bandwidth than frp.
 
-See also [Benchmark](./doc/benchmark.md).
+See also [Benchmark](./docs/benchmark.md).
 
-![tcp_bitrate](./doc/img/tcp_bitrate.svg)
+![tcp_bitrate](./docs/img/tcp_bitrate.svg)
 
-![tcp_latency](./doc/img/tcp_latency.svg)
+![tcp_latency](./docs/img/tcp_latency.svg)
 
 ## Development Status
 
