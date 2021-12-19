@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use rathole::{run, Cli};
 use tokio::{signal, sync::broadcast};
+use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -21,8 +22,10 @@ async fn main() -> Result<()> {
         }
     });
 
-    // TODO: use level from config
-    tracing_subscriber::fmt::init();
+    let level = "info"; // if RUST_LOG not present, use `info` level
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or(EnvFilter::from(level)))
+        .init();
 
     run(&args, shutdown_rx).await
 }
