@@ -118,6 +118,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                             if let Some(err) = err.downcast_ref::<io::Error>() {
                                 // If it is an IO error, then it's possibly an
                                 // EMFILE. So sleep for a while and retry
+                                // TODO: Only sleep for EMFILE, ENFILE, ENOMEM, ENOBUFS
                                 if let Some(d) = backoff.next_backoff() {
                                     error!("Failed to accept: {}. Retry in {:?}...", err, d);
                                     time::sleep(d).await;
