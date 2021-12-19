@@ -1,10 +1,10 @@
 [package]
 name = "rathole"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Yujia Qiao <code@rapiz.me>"]
 description = "A reverse proxy for NAT traversal"
-license-file = "LICENSE"
+license = "Apache-2.0"
 repository = "https://github.com/rapiz1/rathole"
 readme = "README.md"
 
