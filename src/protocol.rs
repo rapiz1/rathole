@@ -53,8 +53,9 @@ pub enum DataChannelCmd {
 }
 
 pub fn digest(data: &[u8]) -> Digest {
-    let d = ring::digest::digest(&ring::digest::SHA256, data);
-    d.as_ref().try_into().unwrap()
+    use sha2::{Digest, Sha256};
+    let d = Sha256::new().chain_update(data).finalize();
+    d.into()
 }
 
 struct PacketLength {
