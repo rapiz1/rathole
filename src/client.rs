@@ -13,12 +13,12 @@ use backoff::ExponentialBackoff;
 
 use tokio::io::{copy_bidirectional, AsyncWriteExt};
 use tokio::net::TcpStream;
-use tokio::sync::oneshot;
+use tokio::sync::{broadcast, oneshot};
 use tokio::time::{self, Duration};
 use tracing::{debug, error, info, instrument, Instrument, Span};
 
 // The entrypoint of running a client
-pub async fn run_client(config: &Config) -> Result<()> {
+pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
     let config = match &config.client {
         Some(v) => v,
         None => {
@@ -29,11 +29,11 @@ pub async fn run_client(config: &Config) -> Result<()> {
     match config.transport.transport_type {
         TransportType::Tcp => {
             let mut client = Client::<TcpTransport>::from(config).await?;
-            client.run().await
+            client.run(shutdown_rx).await
         }
         TransportType::Tls => {
             let mut client = Client::<TlsTransport>::from(config).await?;
-            client.run().await
+            client.run(shutdown_rx).await
         }
     }
 }
@@ -54,12 +54,16 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
         Ok(Client {
             config,
             service_handles: HashMap::new(),
-            transport: Arc::new(*T::new(&config.transport).await?),
+            transport: Arc::new(
+                *T::new(&config.transport)
+                    .await
+                    .with_context(|| "Failed to create the transport")?,
+            ),
         })
     }
 
     // The entrypoint of Client
-    async fn run(&mut self) -> Result<()> {
+    async fn run(&mut self, mut shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
         for (name, config) in &self.config.services {
             // Create a control channel for each service defined
             let handle = ControlChannelHandle::new(
@@ -74,9 +78,9 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
         // Wait for the shutdown signal
         loop {
             tokio::select! {
-                val = tokio::signal::ctrl_c() => {
+                val = shutdown_rx.recv() => {
                     match val {
-                        Ok(()) => {}
+                        Ok(_) => {}
                         Err(err) => {
                             error!("Unable to listen for shutdown signal: {}", err);
                         }
@@ -258,7 +262,7 @@ impl ControlChannelHandle {
                     .await
                     .with_context(|| "Failed to run the control channel")
                 {
-                    let duration = Duration::from_secs(2);
+                    let duration = Duration::from_secs(1);
                     error!("{:?}\n\nRetry in {:?}...", err, duration);
                     time::sleep(duration).await;
                 }
