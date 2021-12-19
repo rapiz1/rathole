@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{self, copy_bidirectional, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::{mpsc, oneshot, RwLock};
+use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 use tokio::time;
 use tracing::{debug, error, info, info_span, warn, Instrument};
 
@@ -26,7 +26,7 @@ const POOL_SIZE: usize = 64; // The number of cached connections
 const CHAN_SIZE: usize = 2048; // The capacity of various chans
 
 // The entrypoint of running a server
-pub async fn run_server(config: &Config) -> Result<()> {
+pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
     let config = match &config.server {
             Some(config) => config,
             None => {
@@ -38,11 +38,11 @@ pub async fn run_server(config: &Config) -> Result<()> {
     match config.transport.transport_type {
         TransportType::Tcp => {
             let mut server = Server::<TcpTransport>::from(config).await?;
-            server.run().await?;
+            server.run(shutdown_rx).await?;
         }
         TransportType::Tls => {
             let mut server = Server::<TlsTransport>::from(config).await?;
-            server.run().await?;
+            server.run(shutdown_rx).await?;
         }
     }
 
@@ -91,7 +91,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
     }
 
     // The entry point of Server
-    pub async fn run(&mut self) -> Result<()> {
+    pub async fn run(&mut self, mut shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
         // Listen at `server.bind_addr`
         let l = self
             .transport
@@ -146,7 +146,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                     }
                 },
                 // Wait for the shutdown signal
-                _ = tokio::signal::ctrl_c() => {
+                _ = shutdown_rx.recv() => {
                     info!("Shuting down gracefully...");
                     break;
                 }

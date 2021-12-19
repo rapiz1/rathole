@@ -11,15 +11,14 @@ pub use cli::Cli;
 pub use config::Config;
 
 use anyhow::{anyhow, Result};
+use tokio::sync::broadcast;
 use tracing::debug;
 
 use client::run_client;
 use server::run_server;
 
-pub async fn run(args: &Cli) -> Result<()> {
+pub async fn run(args: &Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
     let config = Config::from_file(&args.config_path).await?;
-
-    tracing_subscriber::fmt::init();
 
     debug!("{:?}", config);
 
@@ -28,8 +27,8 @@ pub async fn run(args: &Cli) -> Result<()> {
 
     match determine_run_mode(&config, args) {
         RunMode::Undetermine => Err(anyhow!("Cannot determine running as a server or a client")),
-        RunMode::Client => run_client(&config).await,
-        RunMode::Server => run_server(&config).await,
+        RunMode::Client => run_client(&config, shutdown_rx).await,
+        RunMode::Server => run_server(&config, shutdown_rx).await,
     }
 }
 
