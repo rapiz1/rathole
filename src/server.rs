@@ -230,9 +230,9 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
         );
         bail!("Service {} failed the authentication", service_name);
     } else {
-        // TODO: Here could use some refactor:
-        // 1. Clone the config and drop `services_guard` earlier
-        // 2. Use the result of `insert` to warn. Then no need to call `remove1`
+        let service_config = service_config.clone();
+        // Drop the rwlock as soon as possible when we're done with it
+        drop(services_guard);
 
         let mut h = control_channels.write().await;
 
@@ -240,17 +240,12 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
         // Because a control channel doesn't report back when it's dead,
         // the handle in the map could be stall, dropping the old handle enables
         // the client to reconnect.
-        if let Some(_) = h.remove1(&service_digest) {
+        if h.remove1(&service_digest).is_some() {
             warn!(
                 "Dropping previous control channel for digest {}",
                 hex::encode(service_digest)
             );
         }
-
-        let service_config = service_config.clone();
-
-        // Drop the rwlock as soon as possible when we're done with it
-        drop(services_guard);
 
         // Send ack
         conn.write_all(&bincode::serialize(&Ack::Ok).unwrap())
