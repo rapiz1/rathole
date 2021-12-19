@@ -32,8 +32,11 @@ impl Transport for TlsTransport {
 
         let connector = match config.trusted_root.as_ref() {
             Some(path) => {
-                let s = fs::read_to_string(path).await?;
-                let cert = Certificate::from_pem(s.as_bytes())?;
+                let s = fs::read_to_string(path)
+                    .await
+                    .with_context(|| "Failed to read the `tls.trusted_root`")?;
+                let cert = Certificate::from_pem(s.as_bytes())
+                    .with_context(|| "Failed to read certificate from `tls.trusted_root`")?;
                 let connector = native_tls::TlsConnector::builder()
                     .add_root_certificate(cert)
                     .build()?;
