@@ -19,7 +19,7 @@ clap = { version = "3.0.0-rc.7", features = ["derive"] }
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }
 anyhow = "1.0"
-ring = "0.16"
+sha2 = "0.10"
 bincode = "1"
 lazy_static = "1.4.0"
 hex = "0.4"
