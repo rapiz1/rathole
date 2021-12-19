@@ -94,6 +94,16 @@ bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at
 bind_addr = "0.0.0.1:8082"
 ```
 
+### Logging
+`rathole`, like many other Rust programs, use environment variables to control the logging level. `info`, `warn`, `error`, `debug`, `trace` are avialable.
+
+```
+RUST_LOG=error ./rathole config.toml
+```
+will run `rathole` with only error level logging.
+
+If `RUST_LOG` is not present, the default logging level is `info`.
+
 ## Benchmark
 
 rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle more connections. Also it can provide much better bandwidth than frp.
