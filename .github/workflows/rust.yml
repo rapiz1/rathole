@@ -23,7 +23,7 @@ jobs:
         components: clippy
     - uses: Swatinem/rust-cache@v1
     - name: Clippy
-      run: cargo clippy
+      run: cargo clippy -- -D warnings
     - name: Build
       run: cargo build --verbose
     - name: Build with features
