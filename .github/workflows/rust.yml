@@ -26,5 +26,10 @@ jobs:
       run: cargo clippy
     - name: Build
       run: cargo build --verbose
+    - name: Build with features
+      run: |
+        cargo build --no-default-features --features client,server
+        cargo build --no-default-features --features client,tls
+        cargo build --no-default-features --features server,tls
     - name: Run tests
       run: cargo test --verbose
