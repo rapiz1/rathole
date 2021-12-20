@@ -1,21 +1,22 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, TlsTransport, Transport};
+use crate::transport::{TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
-
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::io::{copy_bidirectional, AsyncWriteExt};
 use tokio::net::TcpStream;
 use tokio::sync::{broadcast, oneshot};
 use tokio::time::{self, Duration};
 use tracing::{debug, error, info, instrument, Instrument, Span};
+
+#[cfg(feature = "tls")]
+use crate::transport::TlsTransport;
 
 // The entrypoint of running a client
 pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
@@ -32,8 +33,13 @@ pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             client.run(shutdown_rx).await
         }
         TransportType::Tls => {
-            let mut client = Client::<TlsTransport>::from(config).await?;
-            client.run(shutdown_rx).await
+            #[cfg(feature = "tls")]
+            {
+                let mut client = Client::<TlsTransport>::from(config).await?;
+                client.run(shutdown_rx).await
+            }
+            #[cfg(not(feature = "tls"))]
+            crate::helper::feature_not_compile("tls")
         }
     }
 }

@@ -19,6 +19,8 @@ pub trait Transport: Debug + Send + Sync {
 }
 
 mod tcp;
-mod tls;
 pub use tcp::TcpTransport;
+#[cfg(feature = "tls")]
+mod tls;
+#[cfg(feature = "tls")]
 pub use tls::TlsTransport;
