@@ -1,10 +1,8 @@
 mod cli;
-mod client;
 mod config;
 mod helper;
 mod multi_map;
 mod protocol;
-mod server;
 mod transport;
 
 pub use cli::Cli;
@@ -14,7 +12,14 @@ use anyhow::{anyhow, Result};
 use tokio::sync::broadcast;
 use tracing::debug;
 
+#[cfg(feature = "client")]
+mod client;
+#[cfg(feature = "client")]
 use client::run_client;
+
+#[cfg(feature = "server")]
+mod server;
+#[cfg(feature = "server")]
 use server::run_server;
 
 pub async fn run(args: &Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
@@ -27,8 +32,18 @@ pub async fn run(args: &Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<(
 
     match determine_run_mode(&config, args) {
         RunMode::Undetermine => Err(anyhow!("Cannot determine running as a server or a client")),
-        RunMode::Client => run_client(&config, shutdown_rx).await,
-        RunMode::Server => run_server(&config, shutdown_rx).await,
+        RunMode::Client => {
+            #[cfg(not(feature = "client"))]
+            crate::helper::feature_not_compile("client");
+            #[cfg(feature = "client")]
+            run_client(&config, shutdown_rx).await
+        }
+        RunMode::Server => {
+            #[cfg(not(feature = "server"))]
+            crate::helper::feature_not_compile("server");
+            #[cfg(feature = "server")]
+            run_server(&config, shutdown_rx).await
+        }
     }
 }
 

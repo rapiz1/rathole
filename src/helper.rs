@@ -13,3 +13,11 @@ pub fn set_tcp_keepalive(conn: &TcpStream) -> Result<()> {
     s.set_tcp_keepalive(&keepalive)
         .with_context(|| "Failed to set keepalive")
 }
+
+#[allow(dead_code)]
+pub fn feature_not_compile(feature: &str) -> ! {
+    panic!(
+        "The feature '{}' is not compiled in this binary. Please re-compile rathole",
+        feature
+    )
+}

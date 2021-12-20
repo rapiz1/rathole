@@ -4,7 +4,9 @@ use crate::protocol::Hello::{ControlChannelHello, DataChannelHello};
 use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, TlsTransport, Transport};
+#[cfg(feature = "tls")]
+use crate::transport::TlsTransport;
+use crate::transport::{TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -41,8 +43,13 @@ pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             server.run(shutdown_rx).await?;
         }
         TransportType::Tls => {
-            let mut server = Server::<TlsTransport>::from(config).await?;
-            server.run(shutdown_rx).await?;
+            #[cfg(feature = "tls")]
+            {
+                let mut server = Server::<TlsTransport>::from(config).await?;
+                server.run(shutdown_rx).await?;
+            }
+            #[cfg(not(feature = "tls"))]
+            crate::helper::feature_not_compile("tls")
         }
     }
 
