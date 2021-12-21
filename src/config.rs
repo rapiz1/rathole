@@ -20,14 +20,30 @@ impl Default for TransportType {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ClientServiceConfig {
+    #[serde(rename = "type", default = "default_service_type")]
+    pub service_type: ServiceType,
     #[serde(skip)]
     pub name: String,
     pub local_addr: String,
     pub token: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum ServiceType {
+    #[serde(rename = "tcp")]
+    Tcp,
+    #[serde(rename = "udp")]
+    Udp,
+}
+
+fn default_service_type() -> ServiceType {
+    ServiceType::Tcp
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ServerServiceConfig {
+    #[serde(rename = "type", default = "default_service_type")]
+    pub service_type: ServiceType,
     #[serde(skip)]
     pub name: String,
     pub bind_addr: String,
@@ -231,6 +247,7 @@ mod tests {
         cfg.services.insert(
             "foo1".into(),
             ServerServiceConfig {
+                service_type: ServiceType::Tcp,
                 name: "foo1".into(),
                 bind_addr: "127.0.0.1:80".into(),
                 token: None,
@@ -277,6 +294,7 @@ mod tests {
         cfg.services.insert(
             "foo1".into(),
             ClientServiceConfig {
+                service_type: ServiceType::Tcp,
                 name: "foo1".into(),
                 local_addr: "127.0.0.1:80".into(),
                 token: None,

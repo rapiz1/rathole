@@ -1,22 +1,27 @@
 use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
+use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
-    DataChannelCmd, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
+    DataChannelCmd, UdpTraffic, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
 use crate::transport::{TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
+use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::io::{copy_bidirectional, AsyncWriteExt};
-use tokio::net::TcpStream;
-use tokio::sync::{broadcast, oneshot};
+use tokio::io::{self, copy_bidirectional, AsyncWriteExt};
+use tokio::net::{TcpStream, UdpSocket};
+use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 use tokio::time::{self, Duration};
 use tracing::{debug, error, info, instrument, Instrument, Span};
 
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
+
+use crate::constants::{UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
 
 // The entrypoint of running a client
 pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
@@ -112,7 +117,9 @@ struct RunDataChannelArgs<T: Transport> {
     connector: Arc<T>,
 }
 
-async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Result<()> {
+async fn do_data_channel_handshake<T: Transport>(
+    args: Arc<RunDataChannelArgs<T>>,
+) -> Result<T::Stream> {
     // Retry at least every 100ms, at most for 10 seconds
     let backoff = ExponentialBackoff {
         max_interval: Duration::from_millis(100),
@@ -135,15 +142,162 @@ async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Res
     let hello = Hello::DataChannelHello(CURRENT_PROTO_VRESION, v.to_owned());
     conn.write_all(&bincode::serialize(&hello).unwrap()).await?;
 
+    Ok(conn)
+}
+
+async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Result<()> {
+    // Do the handshake
+    let mut conn = do_data_channel_handshake(args.clone()).await?;
+
     // Forward
     match read_data_cmd(&mut conn).await? {
-        DataChannelCmd::StartForward => {
-            let mut local = TcpStream::connect(&args.local_addr)
-                .await
-                .with_context(|| "Failed to conenct to local_addr")?;
-            let _ = copy_bidirectional(&mut conn, &mut local).await;
+        DataChannelCmd::StartForwardTcp => {
+            run_data_channel_for_tcp::<T>(conn, &args.local_addr).await?;
+        }
+        DataChannelCmd::StartForwardUdp => {
+            run_data_channel_for_udp::<T>(conn, &args.local_addr).await?;
         }
     }
+    Ok(())
+}
+
+// Simply copying back and forth for TCP
+#[instrument(skip(conn))]
+async fn run_data_channel_for_tcp<T: Transport>(
+    mut conn: T::Stream,
+    local_addr: &str,
+) -> Result<()> {
+    debug!("New data channel starts forwarding");
+
+    let mut local = TcpStream::connect(local_addr)
+        .await
+        .with_context(|| "Failed to conenct to local_addr")?;
+    let _ = copy_bidirectional(&mut conn, &mut local).await;
+    Ok(())
+}
+
+// Things get a little tricker when it gets to UDP because it's connectionless.
+// A UdpPortMap must be maintained for recent seen incoming address, giving them
+// each a local port, which is associated with a socket. So just the sender
+// to the socket will work fine for the map's value.
+type UdpPortMap = Arc<RwLock<HashMap<SocketAddr, mpsc::Sender<Bytes>>>>;
+
+#[instrument(skip(conn))]
+async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &str) -> Result<()> {
+    debug!("New data channel starts forwarding");
+
+    let port_map: UdpPortMap = Arc::new(RwLock::new(HashMap::new()));
+
+    // The channel stores UdpTraffic that needs to be sent to the server
+    let (outbound_tx, mut outbound_rx) = mpsc::channel::<UdpTraffic>(UDP_SENDQ_SIZE);
+
+    // FIXME: https://github.com/tokio-rs/tls/issues/40
+    // Maybe this is our concern
+    let (mut rd, mut wr) = io::split(conn);
+
+    // Keep sending items from the outbound channel to the server
+    tokio::spawn(async move {
+        while let Some(t) = outbound_rx.recv().await {
+            debug!("outbound {:?}", t);
+            if t.write(&mut wr).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    loop {
+        // Read a packet from the server
+        let packet = UdpTraffic::read(&mut rd).await?;
+        let m = port_map.read().await;
+
+        if m.get(&packet.from).is_none() {
+            // This packet is from a address we don't see for a while,
+            // which is not in the UdpPortMap.
+            // So set up a mapping (and a forwarder) for it
+
+            // Drop the reader lock
+            drop(m);
+
+            // Grab the writer lock
+            // This is the only thread that will try to grab the writer lock
+            // So no need to worry about some other thread has already set up
+            // the mapping between the gap of dropping the reader lock and
+            // grabbing the writer lock
+            let mut m = port_map.write().await;
+
+            match udp_connect(local_addr).await {
+                Ok(s) => {
+                    let (inbound_tx, inbound_rx) = mpsc::channel(UDP_SENDQ_SIZE);
+                    m.insert(packet.from, inbound_tx);
+                    tokio::spawn(run_udp_forwarder(
+                        s,
+                        inbound_rx,
+                        outbound_tx.clone(),
+                        packet.from,
+                        port_map.clone(),
+                    ));
+                }
+                Err(e) => {
+                    error!("{:?}", e);
+                }
+            }
+        }
+
+        // Now there should be a udp forwarder that can receive the packet
+        let m = port_map.read().await;
+        if let Some(tx) = m.get(&packet.from) {
+            let _ = tx.send(packet.data).await;
+        }
+    }
+}
+
+// Run a UdpSocket for the visitor `from`
+async fn run_udp_forwarder(
+    s: UdpSocket,
+    mut inbound_rx: mpsc::Receiver<Bytes>,
+    outbount_tx: mpsc::Sender<UdpTraffic>,
+    from: SocketAddr,
+    port_map: UdpPortMap,
+) -> Result<()> {
+    let mut buf = BytesMut::new();
+    buf.resize(UDP_BUFFER_SIZE, 0);
+
+    loop {
+        tokio::select! {
+            // Receive from the server
+            data = inbound_rx.recv() => {
+                if let Some(data) = data {
+                    s.send(&data).await?;
+                } else {
+                    break;
+                }
+            },
+
+            // Receive from the service
+            val = s.recv(&mut buf) => {
+                let len = match val {
+                    Ok(v) => v,
+                    Err(_) => {break;}
+                };
+
+                let t = UdpTraffic{
+                    from,
+                    data: Bytes::copy_from_slice(&buf[..len])
+                };
+
+                outbount_tx.send(t).await?;
+            },
+
+            // No traffic for the duration of UDP_TIMEOUT, clean up the state
+            _ = time::sleep(Duration::from_secs(UDP_TIMEOUT)) => {
+                break;
+            }
+        }
+    }
+
+    let mut port_map = port_map.write().await;
+    port_map.remove(&from);
+
     Ok(())
 }
 
@@ -163,7 +317,7 @@ struct ControlChannelHandle {
 }
 
 impl<T: 'static + Transport> ControlChannel<T> {
-    #[instrument(skip(self), fields(service=%self.service.name))]
+    #[instrument(skip_all)]
     async fn run(&mut self) -> Result<()> {
         let mut conn = self
             .transport

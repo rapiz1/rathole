@@ -24,7 +24,7 @@ opt-level = "s"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-bytes = { version = "1"}
+bytes = { version = "1", features = ["serde"] }
 clap = { version = "3.0.0-rc.7", features = ["derive"] }
 toml = "0.5"
 serde = { version = "1.0", features = ["derive"] }
