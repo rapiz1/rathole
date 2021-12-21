@@ -1,9 +1,11 @@
 pub const HASH_WIDTH_IN_BYTES: usize = 32;
 
 use anyhow::{Context, Result};
+use bytes::{Bytes, BytesMut};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite};
+use std::net::SocketAddr;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 type ProtocolVersion = u8;
 const PROTO_V0: u8 = 0u8;
@@ -49,7 +51,80 @@ pub enum ControlChannelCmd {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub enum DataChannelCmd {
-    StartForward,
+    StartForwardTcp,
+    StartForwardUdp,
+}
+
+type UdpPacketLen = u16; // `u16` should be enough for any practical UDP traffic on the Internet
+#[derive(Deserialize, Serialize, Debug)]
+struct UdpHeader {
+    from: SocketAddr,
+    len: UdpPacketLen,
+}
+
+#[derive(Debug)]
+pub struct UdpTraffic {
+    pub from: SocketAddr,
+    pub data: Bytes,
+}
+
+impl UdpTraffic {
+    pub async fn write<T: AsyncWrite + Unpin>(&self, writer: &mut T) -> Result<()> {
+        let v = bincode::serialize(&UdpHeader {
+            from: self.from,
+            len: self.data.len() as UdpPacketLen,
+        })
+        .unwrap();
+
+        writer.write_u16(v.len() as u16).await?;
+        writer.write_all(&v).await?;
+
+        writer.write_all(&self.data).await?;
+
+        Ok(())
+    }
+
+    #[allow(dead_code)]
+    pub async fn write_slice<T: AsyncWrite + Unpin>(
+        writer: &mut T,
+        from: SocketAddr,
+        data: &[u8],
+    ) -> Result<()> {
+        let v = bincode::serialize(&UdpHeader {
+            from,
+            len: data.len() as UdpPacketLen,
+        })
+        .unwrap();
+
+        writer.write_u16(v.len() as u16).await?;
+        writer.write_all(&v).await?;
+
+        writer.write_all(data).await?;
+
+        Ok(())
+    }
+
+    pub async fn read<T: AsyncRead + Unpin>(reader: &mut T) -> Result<UdpTraffic> {
+        let len = reader.read_u16().await? as usize;
+
+        let mut buf = Vec::new();
+        buf.resize(len, 0);
+        reader
+            .read_exact(&mut buf)
+            .await
+            .with_context(|| "Failed to read udp header")?;
+        let header: UdpHeader =
+            bincode::deserialize(&buf).with_context(|| "Failed to deserialize udp header")?;
+
+        let mut data = BytesMut::new();
+        data.resize(header.len as usize, 0);
+        reader.read_exact(&mut data).await?;
+
+        Ok(UdpTraffic {
+            from: header.from,
+            data: data.freeze(),
+        })
+    }
 }
 
 pub fn digest(data: &[u8]) -> Digest {
@@ -74,7 +149,7 @@ impl PacketLength {
             .unwrap() as usize;
         let c_cmd =
             bincode::serialized_size(&ControlChannelCmd::CreateDataChannel).unwrap() as usize;
-        let d_cmd = bincode::serialized_size(&DataChannelCmd::StartForward).unwrap() as usize;
+        let d_cmd = bincode::serialized_size(&DataChannelCmd::StartForwardTcp).unwrap() as usize;
         let ack = Ack::Ok;
         let ack = bincode::serialized_size(&ack).unwrap() as usize;
 
