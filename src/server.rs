@@ -542,6 +542,7 @@ async fn run_udp_connection_pool<T: Transport>(
 
     let cmd = bincode::serialize(&DataChannelCmd::StartForwardUdp).unwrap();
 
+    // Receive one data channel
     let mut conn = data_ch_rx
         .recv()
         .await
