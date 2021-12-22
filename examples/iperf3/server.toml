@@ -1,0 +1,11 @@
+[server]
+bind_addr = "0.0.0.0:2333"
+default_token = "123"
+
+[server.services.iperf3-udp]
+type = "udp"
+bind_addr = "0.0.0.0:5202"
+
+[server.services.iperf3-tcp]
+type = "tcp"
+bind_addr = "0.0.0.0:5202"
