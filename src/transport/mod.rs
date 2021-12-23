@@ -12,7 +12,9 @@ pub trait Transport: Debug + Send + Sync {
     type Acceptor: Send + Sync;
     type Stream: 'static + AsyncRead + AsyncWrite + Unpin + Send + Sync + Debug;
 
-    async fn new(config: &TransportConfig) -> Result<Box<Self>>;
+    async fn new(config: &TransportConfig) -> Result<Self>
+    where
+        Self: Sized;
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor>;
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)>;
     async fn connect(&self, addr: &str) -> Result<Self::Stream>;
@@ -24,3 +26,6 @@ pub use tcp::TcpTransport;
 mod tls;
 #[cfg(feature = "tls")]
 pub use tls::TlsTransport;
+
+mod noise;
+pub use noise::NoiseTransport;

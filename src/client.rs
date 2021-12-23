@@ -5,7 +5,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{NoiseTransport, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
@@ -46,6 +46,10 @@ pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             #[cfg(not(feature = "tls"))]
             crate::helper::feature_not_compile("tls")
         }
+        TransportType::Noise => {
+            let mut client = Client::<NoiseTransport>::from(config).await?;
+            client.run(shutdown_rx).await
+        }
     }
 }
 
@@ -66,7 +70,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
             config,
             service_handles: HashMap::new(),
             transport: Arc::new(
-                *T::new(&config.transport)
+                T::new(&config.transport)
                     .await
                     .with_context(|| "Failed to create the transport")?,
             ),
