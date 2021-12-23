@@ -22,7 +22,7 @@ impl Transport for TlsTransport {
     type Acceptor = (TcpListener, TlsAcceptor);
     type Stream = TlsStream<TcpStream>;
 
-    async fn new(config: &TransportConfig) -> Result<Box<Self>> {
+    async fn new(config: &TransportConfig) -> Result<Self> {
         let config = match &config.tls {
             Some(v) => v,
             None => {
@@ -45,10 +45,10 @@ impl Transport for TlsTransport {
             None => None,
         };
 
-        Ok(Box::new(TlsTransport {
+        Ok(TlsTransport {
             config: config.clone(),
             connector,
-        }))
+        })
     }
 
     async fn bind<A: ToSocketAddrs + Send + Sync>(&self, addr: A) -> Result<Self::Acceptor> {

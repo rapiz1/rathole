@@ -10,6 +10,8 @@ pub enum TransportType {
     Tcp,
     #[serde(rename = "tls")]
     Tls,
+    #[serde(rename = "noise")]
+    Noise,
 }
 
 impl Default for TransportType {
@@ -58,11 +60,25 @@ pub struct TlsConfig {
     pub pkcs12_password: Option<String>,
 }
 
+fn default_noise_pattern() -> String {
+    String::from("Noise_NK_25519_ChaChaPoly_BLAKE2s")
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct NoiseConfig {
+    #[serde(default = "default_noise_pattern")]
+    pub pattern: String,
+    pub local_private_key: Option<String>,
+    pub remote_public_key: Option<String>,
+    // TODO: Maybe psk can be added
+}
+
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
     pub transport_type: TransportType,
     pub tls: Option<TlsConfig>,
+    pub noise: Option<NoiseConfig>,
 }
 
 fn default_transport() -> TransportConfig {
@@ -167,6 +183,10 @@ impl Config {
                         .as_ref()
                         .ok_or(anyhow!("Missing `trusted_root`"))?;
                 }
+                Ok(())
+            }
+            TransportType::Noise => {
+                // The check is done in transport
                 Ok(())
             }
         }

@@ -8,7 +8,7 @@ use crate::protocol::{
 };
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{NoiseTransport, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -55,6 +55,10 @@ pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             #[cfg(not(feature = "tls"))]
             crate::helper::feature_not_compile("tls")
         }
+        TransportType::Noise => {
+            let mut server = Server::<NoiseTransport>::from(config).await?;
+            server.run(shutdown_rx).await?;
+        }
     }
 
     Ok(())
@@ -97,7 +101,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
             config,
             services: Arc::new(RwLock::new(generate_service_hashmap(config))),
             control_channels: Arc::new(RwLock::new(ControlChannelMap::new())),
-            transport: Arc::new(*(T::new(&config.transport).await?)),
+            transport: Arc::new(T::new(&config.transport).await?),
         })
     }
 

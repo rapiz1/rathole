@@ -16,8 +16,8 @@ impl Transport for TcpTransport {
     type Acceptor = TcpListener;
     type Stream = TcpStream;
 
-    async fn new(_config: &TransportConfig) -> Result<Box<Self>> {
-        Ok(Box::new(TcpTransport {}))
+    async fn new(_config: &TransportConfig) -> Result<Self> {
+        Ok(TcpTransport {})
     }
 
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor> {
