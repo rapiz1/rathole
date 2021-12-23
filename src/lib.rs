@@ -8,6 +8,7 @@ mod transport;
 
 pub use cli::Cli;
 pub use config::Config;
+pub use constants::UDP_BUFFER_SIZE;
 
 use anyhow::{anyhow, Result};
 use tokio::sync::broadcast;

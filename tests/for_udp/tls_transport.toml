@@ -1,0 +1,33 @@
+[client]
+remote_addr = "localhost:2332" 
+default_token = "default_token_if_not_specify" 
+
+[client.transport]
+type = "tls" 
+[client.transport.tls]
+trusted_root = "examples/tls/ca-cert.pem"
+hostname = "0.0.0.0"
+
+[client.services.echo] 
+type = "udp"
+local_addr = "localhost:8080" 
+[client.services.pingpong] 
+type = "udp"
+local_addr = "localhost:8081" 
+
+[server]
+bind_addr = "0.0.0.0:2332" 
+default_token = "default_token_if_not_specify" 
+
+[server.transport]
+type = "tls" 
+[server.transport.tls]
+pkcs12 = "examples/tls/identity.pfx"
+pkcs12_password = "1234"
+
+[server.services.echo] 
+type = "udp"
+bind_addr = "0.0.0.0:2334" 
+[server.services.pingpong] 
+type = "udp"
+bind_addr = "0.0.0.0:2335" 
