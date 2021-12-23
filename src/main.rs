@@ -22,12 +22,21 @@ async fn main() -> Result<()> {
         }
     });
 
-    let level = "info"; // if RUST_LOG not present, use `info` level
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::from(level)),
-        )
-        .init();
+    #[cfg(feature = "console")]
+    {
+        console_subscriber::init();
+
+        tracing::info!("console_subscriber enabled");
+    }
+    #[cfg(not(feature = "console"))]
+    {
+        let level = "info"; // if RUST_LOG not present, use `info` level
+        tracing_subscriber::fmt()
+            .with_env_filter(
+                EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::from(level)),
+            )
+            .init();
+    }
 
     run(args, shutdown_rx).await
 }
