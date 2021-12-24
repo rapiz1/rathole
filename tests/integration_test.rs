@@ -155,16 +155,23 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
 
     // Simulate heavy load
     info!("lots of echo and pingpong");
-    for _ in 0..HITTER_NUM / 2 {
-        tokio::spawn(async move {
-            echo_hitter(ECHO_SERVER_ADDR_EXPOSED, t).await.unwrap();
-        });
 
-        tokio::spawn(async move {
+    let mut v = Vec::new();
+
+    for _ in 0..HITTER_NUM / 2 {
+        v.push(tokio::spawn(async move {
+            echo_hitter(ECHO_SERVER_ADDR_EXPOSED, t).await.unwrap();
+        }));
+
+        v.push(tokio::spawn(async move {
             pingpong_hitter(PINGPONG_SERVER_ADDR_EXPOSED, t)
                 .await
                 .unwrap();
-        });
+        }));
+    }
+
+    for h in v {
+        assert!(tokio::join!(h).0.is_ok());
     }
 
     // Shutdown
