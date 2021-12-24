@@ -54,7 +54,7 @@ impl Transport for NoiseTransport {
             None => builder.generate_keypair()?.private,
         };
 
-        let params: NoiseParams = config.pattern.clone().parse()?;
+        let params: NoiseParams = config.pattern.parse()?;
 
         Ok(NoiseTransport {
             config,
