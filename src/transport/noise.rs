@@ -1,11 +1,15 @@
 use std::net::SocketAddr;
 
 use super::Transport;
-use crate::config::{NoiseConfig, TransportConfig};
+use crate::{
+    config::{NoiseConfig, TransportConfig},
+    helper::set_tcp_keepalive,
+};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use snowstorm::{Builder, NoiseParams, NoiseStream};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use tracing::error;
 
 pub struct NoiseTransport {
     config: NoiseConfig,
@@ -76,6 +80,12 @@ impl Transport for NoiseTransport {
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
         let conn = TcpStream::connect(addr).await?;
+        if let Err(e) = set_tcp_keepalive(&conn) {
+            error!(
+                "Failed to set TCP keepalive. The connection maybe unstable: {:?}",
+                e
+            );
+        }
         let conn = NoiseStream::handshake(conn, self.builder().build_initiator()?).await?;
         return Ok(conn);
     }
