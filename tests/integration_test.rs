@@ -56,6 +56,7 @@ async fn tcp() -> Result<()> {
 
     test("tests/for_tcp/tcp_transport.toml", Type::Tcp).await?;
     test("tests/for_tcp/tls_transport.toml", Type::Tcp).await?;
+    test("tests/for_tcp/noise_transport.toml", Type::Tcp).await?;
 
     Ok(())
 }
@@ -80,6 +81,7 @@ async fn udp() -> Result<()> {
 
     test("tests/for_udp/tcp_transport.toml", Type::Udp).await?;
     test("tests/for_udp/tls_transport.toml", Type::Udp).await?;
+    test("tests/for_udp/noise_transport.toml", Type::Udp).await?;
 
     Ok(())
 }
@@ -91,7 +93,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
 
     // Start the client
     info!("start the client");
-    tokio::spawn(async move {
+    let client = tokio::spawn(async move {
         run_rathole_client(&config_path, client_shutdown_rx)
             .await
             .unwrap();
@@ -102,12 +104,12 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
 
     // Start the server
     info!("start the server");
-    tokio::spawn(async move {
+    let server = tokio::spawn(async move {
         run_rathole_server(&config_path, server_shutdown_rx)
             .await
             .unwrap();
     });
-    time::sleep(Duration::from_secs(1)).await; // Wait for the client to retry
+    time::sleep(Duration::from_millis(2000)).await; // Wait for the client to retry
 
     info!("echo");
     echo_hitter(ECHO_SERVER_ADDR_EXPOSED, t).await.unwrap();
@@ -119,7 +121,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     // Simulate the client crash and restart
     info!("shutdown the client");
     client_shutdown_tx.send(true)?;
-    time::sleep(Duration::from_millis(500)).await;
+    let _ = tokio::join!(client);
 
     info!("restart the client");
     let client_shutdown_rx = client_shutdown_tx.subscribe();
@@ -140,7 +142,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     // Simulate the server crash and restart
     info!("shutdown the server");
     server_shutdown_tx.send(true)?;
-    time::sleep(Duration::from_millis(500)).await;
+    let _ = tokio::join!(server);
 
     info!("restart the server");
     let server_shutdown_rx = server_shutdown_tx.subscribe();
@@ -149,7 +151,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
             .await
             .unwrap();
     });
-    time::sleep(Duration::from_secs(1)).await; // Wait for the client to retry
+    time::sleep(Duration::from_millis(2000)).await; // Wait for the client to retry
 
     // Simulate heavy load
     info!("lots of echo and pingpong");
