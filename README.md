@@ -1,9 +1,15 @@
 # rathole
 ![rathole-logo](./docs/img/rathole-logo.png)
 
-A fast and stable reverse proxy for NAT traversal, written in Rust
+A fast, secure and stable reverse proxy for NAT traversal, written in Rust
 
 rathole, like [frp](https://github.com/fatedier/frp), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
+
+- **High Performance** Much higher throughput can be achieved than frp. See [Benchmark](#Benchmark)
+- **Low Resource Consumption** Much less memory is consumed and well managed by Rust.
+- **Secure Model** Tokens of services are mandatory and service-wise. The server and clients are responsible for their own configs.
+- **Encryption** With the help of the Noise Protocol, encryption can be configured at ease. No need to create a self-signed certificate!
+- **Flexibility** While the default profile produces a small binary, it can be customized to be even smaller to fit the constraints of devices, like embedded devices as routers.
 
 ## Quickstart
 
