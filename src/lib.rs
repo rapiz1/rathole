@@ -7,6 +7,7 @@ mod protocol;
 mod transport;
 
 pub use cli::Cli;
+use cli::KeypairType;
 pub use config::Config;
 pub use constants::UDP_BUFFER_SIZE;
 
@@ -24,8 +25,37 @@ mod server;
 #[cfg(feature = "server")]
 use server::run_server;
 
+const DEFAULT_CURVE: KeypairType = KeypairType::X25519;
+
+fn get_str_from_keypair_type(curve: KeypairType) -> &'static str {
+    match curve {
+        KeypairType::X25519 => "25519",
+        KeypairType::X448 => "448",
+    }
+}
+
+fn genkey(curve: Option<KeypairType>) -> Result<()> {
+    let curve = curve.unwrap_or(DEFAULT_CURVE);
+    let builder = snowstorm::Builder::new(
+        format!(
+            "Noise_KK_{}_ChaChaPoly_BLAKE2s",
+            get_str_from_keypair_type(curve)
+        )
+        .parse()?,
+    );
+    let keypair = builder.generate_keypair()?;
+
+    println!("Private Key:\n{}\n", base64::encode(keypair.private));
+    println!("Public Key:\n{}", base64::encode(keypair.public));
+    Ok(())
+}
+
 pub async fn run(args: &Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
-    let config = Config::from_file(&args.config_path).await?;
+    if args.genkey.is_some() {
+        return genkey(args.genkey.unwrap());
+    }
+
+    let config = Config::from_file(args.config_path.as_ref().unwrap()).await?;
 
     debug!("{:?}", config);
 
@@ -155,9 +185,10 @@ mod tests {
             };
 
             let args = Cli {
-                config_path: std::path::PathBuf::new(),
+                config_path: Some(std::path::PathBuf::new()),
                 server: t.arg_s,
                 client: t.arg_c,
+                ..Default::default()
             };
 
             assert_eq!(determine_run_mode(&config, &args), t.run_mode);
