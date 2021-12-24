@@ -1104,8 +1104,9 @@ dependencies = [
 
 [[package]]
 name = "snowstorm"
-version = "0.1.1"
-source = "git+https://github.com/black-binary/snowstorm#42fe84ce2305f02960fb1e295eaa768da055e6e0"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8d51a1126954ff3e8d23a2760e8fd31d2ef57dc4de94b8914ccf55427c964aa9"
 dependencies = [
  "bytes",
  "futures-util",
