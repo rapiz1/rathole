@@ -57,6 +57,8 @@ But the `[client]` and `[server]` block can also be put in one file. Then on the
 
 Some configuration examples are provided under [examples](./examples).
 
+The Noise Protocol can be easily used to secure the traffic, see [Security](./docs/security.md).
+
 Here is the full configuration specification:
 ```toml
 [client]
@@ -65,9 +67,15 @@ default_token = "default_token_if_not_specify" # Optional. The default token of 
 
 [client.transport]
 type = "tcp" # Optional. Possible values: ["tcp", "tls"]. Default: "tcp"
+
 [client.transport.tls] # Necessary if `type` is "tls"
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
 hostname = "example.com" # Optional. The hostname that the client uses to validate the certificate. If not set, fallback to `client.remote_addr`
+
+[client.transport.noise] # Noise protocol. See `docs/security.md` for further explanation
+pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
+local_private_key = "key_encoded_in_base64" # Optional
+remote_public_key = "key_encoded_in_base64" # Optional
 
 [client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
@@ -83,9 +91,15 @@ default_token = "default_token_if_not_specify" # Optional
 
 [server.transport]
 type = "tcp" # Same as `[client.transport]`
+
 [server.transport.tls] # Necessary if `type` is "tls"
 pkcs12 = "identify.pfx" # Necessary. pkcs12 file of server's certificate and private key
 pkcs12_password = "password" # Necessary. Password of the pkcs12 file
+
+[server.transport.noise] # Same as `[client.transport.noise]`
+pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
+local_private_key = "key_encoded_in_base64" 
+remote_public_key = "key_encoded_in_base64" 
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
