@@ -71,8 +71,8 @@ Here is the full configuration specification:
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
 
-[client.transport]
-type = "tcp" # Optional. Possible values: ["tcp", "tls"]. Default: "tcp"
+[client.transport] # The whole block is optional. Specify which transport to use
+type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
 
 [client.transport.tls] # Necessary if `type` is "tls"
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
@@ -95,8 +95,8 @@ local_addr = "127.0.0.1:1082"
 bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change. 
 default_token = "default_token_if_not_specify" # Optional
 
-[server.transport]
-type = "tcp" # Same as `[client.transport]`
+[server.transport] # Same as `[client.transport]`
+type = "tcp" 
 
 [server.transport.tls] # Necessary if `type` is "tls"
 pkcs12 = "identify.pfx" # Necessary. pkcs12 file of server's certificate and private key
