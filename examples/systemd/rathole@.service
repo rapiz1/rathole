@@ -1,0 +1,14 @@
+[Unit]
+Description=Rathole Service
+After=network.target
+
+[Service]
+Type=simple
+User=nobody
+Restart=on-failure
+RestartSec=5s
+ExecStart=/usr/bin/rathole /etc/rathole/%i.toml
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
