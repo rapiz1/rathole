@@ -56,7 +56,7 @@ pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2s"
 
 # Client Side Configuration
 [client.transport.noise]
-pattern = "Noise_KK_25519_ChaChaPoly_BLAKE2s"
+pattern = "Noise_XX_25519_ChaChaPoly_BLAKE2s"
 ```
 
 ### Bidirectional Authentication
