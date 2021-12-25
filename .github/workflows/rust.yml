@@ -26,10 +26,9 @@ jobs:
       run: cargo clippy -- -D warnings
     - name: Build
       run: cargo build --verbose
+    - name: Setup cargo-hack
+      run: cargo install cargo-hack
     - name: Build with features
-      run: |
-        cargo build --no-default-features --features client,server
-        cargo build --no-default-features --features client,tls
-        cargo build --no-default-features --features server,tls
+      run: cargo hack check --feature-powerset --no-dev-deps
     - name: Run tests
       run: cargo test --verbose
