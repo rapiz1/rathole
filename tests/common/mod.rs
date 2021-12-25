@@ -20,7 +20,7 @@ pub async fn run_rathole_server(
         client: false,
         ..Default::default()
     };
-    rathole::run(&cli, shutdown_rx).await
+    rathole::run(cli, shutdown_rx).await
 }
 
 pub async fn run_rathole_client(
@@ -33,7 +33,7 @@ pub async fn run_rathole_client(
         client: true,
         ..Default::default()
     };
-    rathole::run(&cli, shutdown_rx).await
+    rathole::run(cli, shutdown_rx).await
 }
 
 pub mod tcp {

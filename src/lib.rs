@@ -1,5 +1,6 @@
 mod cli;
 mod config;
+mod config_watcher;
 mod constants;
 mod helper;
 mod multi_map;
@@ -9,10 +10,11 @@ mod transport;
 pub use cli::Cli;
 use cli::KeypairType;
 pub use config::Config;
+use config_watcher::ServiceChangeEvent;
 pub use constants::UDP_BUFFER_SIZE;
 
-use anyhow::{anyhow, Result};
-use tokio::sync::broadcast;
+use anyhow::Result;
+use tokio::sync::{broadcast, mpsc};
 use tracing::debug;
 
 #[cfg(feature = "client")]
@@ -24,6 +26,8 @@ use client::run_client;
 mod server;
 #[cfg(feature = "server")]
 use server::run_server;
+
+use crate::config_watcher::{ConfigChangeEvent, ConfigWatcherHandle};
 
 const DEFAULT_CURVE: KeypairType = KeypairType::X25519;
 
@@ -56,20 +60,68 @@ fn genkey(curve: Option<KeypairType>) -> Result<()> {
     crate::helper::feature_not_compile("nosie")
 }
 
-pub async fn run(args: &Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
+pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
     if args.genkey.is_some() {
         return genkey(args.genkey.unwrap());
     }
 
-    let config = Config::from_file(args.config_path.as_ref().unwrap()).await?;
-
-    debug!("{:?}", config);
-
     // Raise `nofile` limit on linux and mac
     fdlimit::raise_fd_limit();
 
-    match determine_run_mode(&config, args) {
-        RunMode::Undetermine => Err(anyhow!("Cannot determine running as a server or a client")),
+    // Spawn a config watcher. The watcher will send a initial signal to start the instance with a config
+    let config_path = args.config_path.as_ref().unwrap();
+    let mut cfg_watcher = ConfigWatcherHandle::new(config_path, shutdown_rx).await?;
+
+    // shutdown_tx owns the instance
+    let (shutdown_tx, _) = broadcast::channel(1);
+
+    // (The join handle of the last instance, The service update channel sender)
+    let mut last_instance: Option<(tokio::task::JoinHandle<_>, mpsc::Sender<ServiceChangeEvent>)> =
+        None;
+
+    while let Some(e) = cfg_watcher.event_rx.recv().await {
+        match e {
+            ConfigChangeEvent::General(config) => {
+                match last_instance {
+                    Some((i, _)) => {
+                        shutdown_tx.send(true)?;
+                        i.await??;
+                    }
+                    None => (),
+                }
+
+                debug!("{:?}", config);
+
+                let (service_update_tx, service_update_rx) = mpsc::channel(1024);
+
+                last_instance = Some((
+                    tokio::spawn(run_instance(
+                        config.clone(),
+                        args.clone(),
+                        shutdown_tx.subscribe(),
+                        service_update_rx,
+                    )),
+                    service_update_tx,
+                ));
+            }
+            ConfigChangeEvent::ServiceChange(service_event) => {
+                if let Some((_, service_update_tx)) = &last_instance {
+                    let _ = service_update_tx.send(service_event).await;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+async fn run_instance(
+    config: Config,
+    args: Cli,
+    shutdown_rx: broadcast::Receiver<bool>,
+    _service_update: mpsc::Receiver<ServiceChangeEvent>,
+) -> Result<()> {
+    match determine_run_mode(&config, &args) {
+        RunMode::Undetermine => panic!("Cannot determine running as a server or a client"),
         RunMode::Client => {
             #[cfg(not(feature = "client"))]
             crate::helper::feature_not_compile("client");

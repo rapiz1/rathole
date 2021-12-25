@@ -6,7 +6,7 @@ pub enum KeypairType {
     X448,
 }
 
-#[derive(Parser, Debug, Default)]
+#[derive(Parser, Debug, Default, Clone)]
 #[clap(about, version, setting(AppSettings::DeriveDisplayOrder))]
 #[clap(group(
             ArgGroup::new("cmds")
