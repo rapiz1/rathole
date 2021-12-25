@@ -5,7 +5,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{NoiseTransport, TcpTransport, Transport};
+use crate::transport::{TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
@@ -18,6 +18,8 @@ use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 use tokio::time::{self, Duration};
 use tracing::{debug, error, info, instrument, Instrument, Span};
 
+#[cfg(feature = "noise")]
+use crate::transport::NoiseTransport;
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
 
@@ -47,8 +49,13 @@ pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             crate::helper::feature_not_compile("tls")
         }
         TransportType::Noise => {
-            let mut client = Client::<NoiseTransport>::from(config).await?;
-            client.run(shutdown_rx).await
+            #[cfg(feature = "noise")]
+            {
+                let mut client = Client::<NoiseTransport>::from(config).await?;
+                client.run(shutdown_rx).await
+            }
+            #[cfg(not(feature = "noise"))]
+            crate::helper::feature_not_compile("noise")
         }
     }
 }
