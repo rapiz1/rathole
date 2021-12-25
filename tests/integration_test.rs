@@ -94,7 +94,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     // Start the client
     info!("start the client");
     let client = tokio::spawn(async move {
-        run_rathole_client(&config_path, client_shutdown_rx)
+        run_rathole_client(config_path, client_shutdown_rx)
             .await
             .unwrap();
     });
@@ -105,7 +105,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     // Start the server
     info!("start the server");
     let server = tokio::spawn(async move {
-        run_rathole_server(&config_path, server_shutdown_rx)
+        run_rathole_server(config_path, server_shutdown_rx)
             .await
             .unwrap();
     });
@@ -126,7 +126,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     info!("restart the client");
     let client_shutdown_rx = client_shutdown_tx.subscribe();
     let client = tokio::spawn(async move {
-        run_rathole_client(&config_path, client_shutdown_rx)
+        run_rathole_client(config_path, client_shutdown_rx)
             .await
             .unwrap();
     });
@@ -147,7 +147,7 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     info!("restart the server");
     let server_shutdown_rx = server_shutdown_tx.subscribe();
     let server = tokio::spawn(async move {
-        run_rathole_server(&config_path, server_shutdown_rx)
+        run_rathole_server(config_path, server_shutdown_rx)
             .await
             .unwrap();
     });

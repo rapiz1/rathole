@@ -29,5 +29,5 @@ async fn main() -> Result<()> {
         )
         .init();
 
-    run(&args, shutdown_rx).await
+    run(args, shutdown_rx).await
 }

@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub enum TransportType {
     #[serde(rename = "tcp")]
     Tcp,
@@ -20,7 +20,7 @@ impl Default for TransportType {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ClientServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
     pub service_type: ServiceType,
@@ -30,7 +30,7 @@ pub struct ClientServiceConfig {
     pub token: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 pub enum ServiceType {
     #[serde(rename = "tcp")]
     Tcp,
@@ -42,7 +42,7 @@ fn default_service_type() -> ServiceType {
     ServiceType::Tcp
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct ServerServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
     pub service_type: ServiceType,
@@ -52,7 +52,7 @@ pub struct ServerServiceConfig {
     pub token: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TlsConfig {
     pub hostname: Option<String>,
     pub trusted_root: Option<String>,
@@ -64,7 +64,7 @@ fn default_noise_pattern() -> String {
     String::from("Noise_NK_25519_ChaChaPoly_BLAKE2s")
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct NoiseConfig {
     #[serde(default = "default_noise_pattern")]
     pub pattern: String,
@@ -73,7 +73,7 @@ pub struct NoiseConfig {
     // TODO: Maybe psk can be added
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
     pub transport_type: TransportType,
@@ -85,7 +85,7 @@ fn default_transport() -> TransportConfig {
     Default::default()
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct ClientConfig {
     pub remote_addr: String,
     pub default_token: Option<String>,
@@ -94,7 +94,7 @@ pub struct ClientConfig {
     pub transport: TransportConfig,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct ServerConfig {
     pub bind_addr: String,
     pub default_token: Option<String>,
@@ -103,7 +103,7 @@ pub struct ServerConfig {
     pub transport: TransportConfig,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub server: Option<ServerConfig>,
