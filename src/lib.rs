@@ -34,6 +34,7 @@ fn get_str_from_keypair_type(curve: KeypairType) -> &'static str {
     }
 }
 
+#[cfg(feature = "noise")]
 fn genkey(curve: Option<KeypairType>) -> Result<()> {
     let curve = curve.unwrap_or(DEFAULT_CURVE);
     let builder = snowstorm::Builder::new(
@@ -48,6 +49,11 @@ fn genkey(curve: Option<KeypairType>) -> Result<()> {
     println!("Private Key:\n{}\n", base64::encode(keypair.private));
     println!("Public Key:\n{}", base64::encode(keypair.public));
     Ok(())
+}
+
+#[cfg(not(feature = "noise"))]
+fn genkey(curve: Option<KeypairType>) -> Result<()> {
+    crate::helper::feature_not_compile("nosie")
 }
 
 pub async fn run(args: &Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {

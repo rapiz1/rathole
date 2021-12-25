@@ -27,5 +27,7 @@ mod tls;
 #[cfg(feature = "tls")]
 pub use tls::TlsTransport;
 
+#[cfg(feature = "noise")]
 mod noise;
+#[cfg(feature = "noise")]
 pub use noise::NoiseTransport;

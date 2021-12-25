@@ -6,9 +6,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-#[cfg(feature = "tls")]
-use crate::transport::TlsTransport;
-use crate::transport::{NoiseTransport, TcpTransport, Transport};
+use crate::transport::{TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -23,6 +21,11 @@ use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::time;
 use tracing::{debug, error, info, info_span, instrument, warn, Instrument, Span};
+
+#[cfg(feature = "noise")]
+use crate::transport::NoiseTransport;
+#[cfg(feature = "tls")]
+use crate::transport::TlsTransport;
 
 type ServiceDigest = protocol::Digest; // SHA256 of a service name
 type Nonce = protocol::Digest; // Also called `session_key`
@@ -56,8 +59,13 @@ pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             crate::helper::feature_not_compile("tls")
         }
         TransportType::Noise => {
-            let mut server = Server::<NoiseTransport>::from(config).await?;
-            server.run(shutdown_rx).await?;
+            #[cfg(feature = "noise")]
+            {
+                let mut server = Server::<NoiseTransport>::from(config).await?;
+                server.run(shutdown_rx).await?;
+            }
+            #[cfg(not(feature = "noise"))]
+            crate::helper::feature_not_compile("noise")
         }
     }
 
