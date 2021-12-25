@@ -4,7 +4,7 @@
 ### Quickstart for the Noise Protocl
 In one word, the [Noise Protocol](http://noiseprotocol.org/noise.html) is a lightweigt, easy to configure and drop-in replacement of TLS. No need to create a self-sign certificate to secure the connection.
 
-`rathole` comes with a reasonable default configuration for noise protocol. You can a glimpse of the minimal [example](./examples/noise_nk) for how it will look like.
+`rathole` comes with a reasonable default configuration for noise protocol. You can a glimpse of the minimal [example](../examples/noise_nk) for how it will look like.
 
 The default noise protocol that `rathole` uses, which is `Noise_NK_25519_ChaChaPoly_BLAKE2s`, providing the authentication of the server, just like TLS with properly configured certificates. So MITM is no more a problem.
 
