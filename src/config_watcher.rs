@@ -3,13 +3,15 @@ use crate::{
     Config,
 };
 use anyhow::{Context, Result};
-use notify::{event::ModifyKind, EventKind, RecursiveMode, Watcher};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
 };
 use tokio::sync::{broadcast, mpsc};
 use tracing::{error, info, instrument};
+
+#[cfg(feature = "notify")]
+use notify::{event::ModifyKind, EventKind, RecursiveMode, Watcher};
 
 #[derive(Debug)]
 pub enum ConfigChangeEvent {
@@ -35,6 +37,12 @@ impl ConfigWatcherHandle {
 
         let origin_cfg = Config::from_file(path).await?;
 
+        // Initial start
+        event_tx
+            .send(ConfigChangeEvent::General(Box::new(origin_cfg.clone())))
+            .await
+            .unwrap();
+
         tokio::spawn(config_watcher(
             path.to_owned(),
             shutdown_rx,
@@ -46,6 +54,20 @@ impl ConfigWatcherHandle {
     }
 }
 
+// Fake config watcher when compiling without `notify`
+#[cfg(not(feature = "notify"))]
+async fn config_watcher(
+    _path: PathBuf,
+    mut shutdown_rx: broadcast::Receiver<bool>,
+    _cfg_event_tx: mpsc::Sender<ConfigChangeEvent>,
+    _old: Config,
+) -> Result<()> {
+    // Do nothing except wating for ctrl-c
+    let _ = shutdown_rx.recv().await;
+    Ok(())
+}
+
+#[cfg(feature = "notify")]
 #[instrument(skip(shutdown_rx, cfg_event_tx, old))]
 async fn config_watcher(
     path: PathBuf,
@@ -61,12 +83,6 @@ async fn config_watcher(
         }
         Err(e) => error!("watch error: {:?}", e),
     })?;
-
-    // Initial start
-    cfg_event_tx
-        .send(ConfigChangeEvent::General(Box::new(old.clone())))
-        .await
-        .unwrap();
 
     watcher.watch(&path, RecursiveMode::NonRecursive)?;
     info!("Start watching the config");
