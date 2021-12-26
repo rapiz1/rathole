@@ -16,12 +16,18 @@ tls = ["tokio-native-tls"]
 noise = ["snowstorm", "base64"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.release]
+lto = true
+
 [profile.bench]
 debug = 1
 
 [profile.minimal]
 inherits = "release"
-opt-level = "s"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
