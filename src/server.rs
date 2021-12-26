@@ -1,4 +1,5 @@
 use crate::config::{Config, ServerConfig, ServerServiceConfig, ServiceType, TransportType};
+use crate::config_watcher::ServiceChangeEvent;
 use crate::constants::{listen_backoff, UDP_BUFFER_SIZE};
 use crate::multi_map::MultiMap;
 use crate::protocol::Hello::{ControlChannelHello, DataChannelHello};
@@ -35,7 +36,11 @@ const UDP_POOL_SIZE: usize = 2; // The number of cached connections for UDP serv
 const CHAN_SIZE: usize = 2048; // The capacity of various chans
 
 // The entrypoint of running a server
-pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
+pub async fn run_server(
+    config: &Config,
+    shutdown_rx: broadcast::Receiver<bool>,
+    service_rx: mpsc::Receiver<ServiceChangeEvent>,
+) -> Result<()> {
     let config = match &config.server {
             Some(config) => config,
             None => {
@@ -47,13 +52,13 @@ pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
     match config.transport.transport_type {
         TransportType::Tcp => {
             let mut server = Server::<TcpTransport>::from(config).await?;
-            server.run(shutdown_rx).await?;
+            server.run(shutdown_rx, service_rx).await?;
         }
         TransportType::Tls => {
             #[cfg(feature = "tls")]
             {
                 let mut server = Server::<TlsTransport>::from(config).await?;
-                server.run(shutdown_rx).await?;
+                server.run(shutdown_rx, service_rx).await?;
             }
             #[cfg(not(feature = "tls"))]
             crate::helper::feature_not_compile("tls")
@@ -62,7 +67,7 @@ pub async fn run_server(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             #[cfg(feature = "noise")]
             {
                 let mut server = Server::<NoiseTransport>::from(config).await?;
-                server.run(shutdown_rx).await?;
+                server.run(shutdown_rx, service_rx).await?;
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
@@ -114,7 +119,11 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
     }
 
     // The entry point of Server
-    pub async fn run(&mut self, mut shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
+    pub async fn run(
+        &mut self,
+        mut shutdown_rx: broadcast::Receiver<bool>,
+        mut service_rx: mpsc::Receiver<ServiceChangeEvent>,
+    ) -> Result<()> {
         // Listen at `server.bind_addr`
         let l = self
             .transport
@@ -172,11 +181,37 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                 _ = shutdown_rx.recv() => {
                     info!("Shuting down gracefully...");
                     break;
+                },
+                e = service_rx.recv() => {
+                    if let Some(e) = e {
+                        self.handle_hot_reload(e).await;
+                    }
                 }
             }
         }
 
         Ok(())
+    }
+
+    async fn handle_hot_reload(&mut self, e: ServiceChangeEvent) {
+        match e {
+            ServiceChangeEvent::ServerAdd(s) => {
+                let hash = protocol::digest(s.name.as_bytes());
+                let mut wg = self.services.write().await;
+                let _ = wg.insert(hash, s);
+
+                let mut wg = self.control_channels.write().await;
+                let _ = wg.remove1(&hash);
+            }
+            ServiceChangeEvent::ServerDelete(s) => {
+                let hash = protocol::digest(s.as_bytes());
+                let _ = self.services.write().await.remove(&hash);
+
+                let mut wg = self.control_channels.write().await;
+                let _ = wg.remove1(&hash);
+            }
+            _ => (),
+        }
     }
 }
 

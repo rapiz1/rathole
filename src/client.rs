@@ -1,4 +1,5 @@
 use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
+use crate::config_watcher::ServiceChangeEvent;
 use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
@@ -16,7 +17,7 @@ use tokio::io::{self, copy_bidirectional, AsyncWriteExt};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 use tokio::time::{self, Duration};
-use tracing::{debug, error, info, instrument, Instrument, Span};
+use tracing::{debug, error, info, instrument, warn, Instrument, Span};
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
@@ -26,7 +27,11 @@ use crate::transport::TlsTransport;
 use crate::constants::{UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
 
 // The entrypoint of running a client
-pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
+pub async fn run_client(
+    config: &Config,
+    shutdown_rx: broadcast::Receiver<bool>,
+    service_rx: mpsc::Receiver<ServiceChangeEvent>,
+) -> Result<()> {
     let config = match &config.client {
         Some(v) => v,
         None => {
@@ -37,13 +42,13 @@ pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
     match config.transport.transport_type {
         TransportType::Tcp => {
             let mut client = Client::<TcpTransport>::from(config).await?;
-            client.run(shutdown_rx).await
+            client.run(shutdown_rx, service_rx).await
         }
         TransportType::Tls => {
             #[cfg(feature = "tls")]
             {
                 let mut client = Client::<TlsTransport>::from(config).await?;
-                client.run(shutdown_rx).await
+                client.run(shutdown_rx, service_rx).await
             }
             #[cfg(not(feature = "tls"))]
             crate::helper::feature_not_compile("tls")
@@ -52,7 +57,7 @@ pub async fn run_client(config: &Config, shutdown_rx: broadcast::Receiver<bool>)
             #[cfg(feature = "noise")]
             {
                 let mut client = Client::<NoiseTransport>::from(config).await?;
-                client.run(shutdown_rx).await
+                client.run(shutdown_rx, service_rx).await
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
@@ -85,7 +90,11 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
     }
 
     // The entrypoint of Client
-    async fn run(&mut self, mut shutdown_rx: broadcast::Receiver<bool>) -> Result<()> {
+    async fn run(
+        &mut self,
+        mut shutdown_rx: broadcast::Receiver<bool>,
+        mut service_rx: mpsc::Receiver<ServiceChangeEvent>,
+    ) -> Result<()> {
         for (name, config) in &self.config.services {
             // Create a control channel for each service defined
             let handle = ControlChannelHandle::new(
@@ -96,7 +105,6 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
             self.service_handles.insert(name.clone(), handle);
         }
 
-        // TODO: Maybe wait for a config change signal for hot reloading
         // Wait for the shutdown signal
         loop {
             tokio::select! {
@@ -109,6 +117,25 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
                     }
                     break;
                 },
+                e = service_rx.recv() => {
+                    if let Some(e) = e {
+                        match e {
+                            ServiceChangeEvent::ClientAdd(s)=> {
+                                let name = s.name.clone();
+                                let handle = ControlChannelHandle::new(
+                                    s,
+                                    self.config.remote_addr.clone(),
+                                    self.transport.clone(),
+                                );
+                                let _ = self.service_handles.insert(name, handle);
+                            },
+                            ServiceChangeEvent::ClientDelete(s)=> {
+                                let _ = self.service_handles.remove(&s);
+                            },
+                            _ => ()
+                        }
+                    }
+                }
             }
         }
 
@@ -399,7 +426,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
                     }
                 },
                 _ = &mut self.shutdown_rx => {
-                    info!( "Shutting down gracefully...");
+                    info!( "Control channel shutting down...");
                     break;
                 }
             }
@@ -433,6 +460,10 @@ impl ControlChannelHandle {
                     .await
                     .with_context(|| "Failed to run the control channel")
                 {
+                    if s.shutdown_rx.try_recv() != Err(oneshot::error::TryRecvError::Empty) {
+                        break;
+                    }
+
                     let duration = Duration::from_secs(1);
                     error!("{:?}\n\nRetry in {:?}...", err, duration);
                     time::sleep(duration).await;
