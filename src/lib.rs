@@ -15,7 +15,7 @@ pub use constants::UDP_BUFFER_SIZE;
 
 use anyhow::Result;
 use tokio::sync::{broadcast, mpsc};
-use tracing::debug;
+use tracing::{debug, info};
 
 #[cfg(feature = "client")]
 mod client;
@@ -82,12 +82,10 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
     while let Some(e) = cfg_watcher.event_rx.recv().await {
         match e {
             ConfigChangeEvent::General(config) => {
-                match last_instance {
-                    Some((i, _)) => {
-                        shutdown_tx.send(true)?;
-                        i.await??;
-                    }
-                    None => (),
+                if let Some((i, _)) = last_instance {
+                    info!("General configuration change detected. Restarting...");
+                    shutdown_tx.send(true)?;
+                    i.await??;
                 }
 
                 debug!("{:?}", config);
@@ -96,7 +94,7 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
 
                 last_instance = Some((
                     tokio::spawn(run_instance(
-                        config.clone(),
+                        *(config.clone()),
                         args.clone(),
                         shutdown_tx.subscribe(),
                         service_update_rx,
@@ -105,6 +103,7 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
                 ));
             }
             ConfigChangeEvent::ServiceChange(service_event) => {
+                info!("Service change detcted. {:?}", service_event);
                 if let Some((_, service_update_tx)) = &last_instance {
                     let _ = service_update_tx.send(service_event).await;
                 }
@@ -118,7 +117,7 @@ async fn run_instance(
     config: Config,
     args: Cli,
     shutdown_rx: broadcast::Receiver<bool>,
-    _service_update: mpsc::Receiver<ServiceChangeEvent>,
+    service_update: mpsc::Receiver<ServiceChangeEvent>,
 ) -> Result<()> {
     match determine_run_mode(&config, &args) {
         RunMode::Undetermine => panic!("Cannot determine running as a server or a client"),
@@ -126,13 +125,13 @@ async fn run_instance(
             #[cfg(not(feature = "client"))]
             crate::helper::feature_not_compile("client");
             #[cfg(feature = "client")]
-            run_client(&config, shutdown_rx).await
+            run_client(&config, shutdown_rx, service_update).await
         }
         RunMode::Server => {
             #[cfg(not(feature = "server"))]
             crate::helper::feature_not_compile("server");
             #[cfg(feature = "server")]
-            run_server(&config, shutdown_rx).await
+            run_server(&config, shutdown_rx, service_update).await
         }
     }
 }
