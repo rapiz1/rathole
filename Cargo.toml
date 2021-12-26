@@ -9,7 +9,7 @@ repository = "https://github.com/rapiz1/rathole"
 readme = "README.md"
 
 [features]
-default = ["tls", "server", "client", "noise"]
+default = ["tls", "server", "client", "noise", "notify"]
 server = []
 client = []
 tls = ["tokio-native-tls"]
@@ -50,4 +50,4 @@ tokio-native-tls = { version = "0.3.0", optional = true }
 async-trait = "0.1.52"
 snowstorm = { git = "https://github.com/black-binary/snowstorm", rev = "1887755", optional = true }
 base64 = { version = "0.13.0", optional = true }
-notify = "5.0.0-pre.13"
+notify = { version = "5.0.0-pre.13", optional = true }
