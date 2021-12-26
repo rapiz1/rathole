@@ -38,11 +38,17 @@ pub enum ServiceType {
     Udp,
 }
 
-fn default_service_type() -> ServiceType {
-    ServiceType::Tcp
+impl Default for ServiceType {
+    fn default() -> Self {
+        ServiceType::Tcp
+    }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+fn default_service_type() -> ServiceType {
+    Default::default()
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 pub struct ServerServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
     pub service_type: ServiceType,

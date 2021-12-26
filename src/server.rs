@@ -1,5 +1,5 @@
 use crate::config::{Config, ServerConfig, ServerServiceConfig, ServiceType, TransportType};
-use crate::config_watcher::ServiceChangeEvent;
+use crate::config_watcher::ServiceChange;
 use crate::constants::{listen_backoff, UDP_BUFFER_SIZE};
 use crate::multi_map::MultiMap;
 use crate::protocol::Hello::{ControlChannelHello, DataChannelHello};
@@ -39,7 +39,7 @@ const CHAN_SIZE: usize = 2048; // The capacity of various chans
 pub async fn run_server(
     config: &Config,
     shutdown_rx: broadcast::Receiver<bool>,
-    service_rx: mpsc::Receiver<ServiceChangeEvent>,
+    service_rx: mpsc::Receiver<ServiceChange>,
 ) -> Result<()> {
     let config = match &config.server {
             Some(config) => config,
@@ -122,7 +122,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
     pub async fn run(
         &mut self,
         mut shutdown_rx: broadcast::Receiver<bool>,
-        mut service_rx: mpsc::Receiver<ServiceChangeEvent>,
+        mut service_rx: mpsc::Receiver<ServiceChange>,
     ) -> Result<()> {
         // Listen at `server.bind_addr`
         let l = self
@@ -193,9 +193,9 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
         Ok(())
     }
 
-    async fn handle_hot_reload(&mut self, e: ServiceChangeEvent) {
+    async fn handle_hot_reload(&mut self, e: ServiceChange) {
         match e {
-            ServiceChangeEvent::ServerAdd(s) => {
+            ServiceChange::ServerAdd(s) => {
                 let hash = protocol::digest(s.name.as_bytes());
                 let mut wg = self.services.write().await;
                 let _ = wg.insert(hash, s);
@@ -203,7 +203,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                 let mut wg = self.control_channels.write().await;
                 let _ = wg.remove1(&hash);
             }
-            ServiceChangeEvent::ServerDelete(s) => {
+            ServiceChange::ServerDelete(s) => {
                 let hash = protocol::digest(s.as_bytes());
                 let _ = self.services.write().await.remove(&hash);
 
@@ -340,11 +340,8 @@ async fn do_data_channel_handshake<T: 'static + Transport>(
 }
 
 pub struct ControlChannelHandle<T: Transport> {
-    // Shutdown the control channel.
-    // Not used for now, but can be used for hot reloading
-    #[allow(dead_code)]
-    shutdown_tx: broadcast::Sender<bool>,
-    //data_ch_req_tx: mpsc::Sender<bool>,
+    // Shutdown the control channel by dropping it
+    _shutdown_tx: broadcast::Sender<bool>,
     data_ch_tx: mpsc::Sender<T::Stream>,
 }
 
@@ -359,7 +356,7 @@ where
         // Save the name string for logging
         let name = service.name.clone();
 
-        // Create a shutdown channel. The sender is not used for now, but for future use
+        // Create a shutdown channel
         let (shutdown_tx, shutdown_rx) = broadcast::channel::<bool>(1);
 
         // Store data channels
@@ -417,14 +414,9 @@ where
         });
 
         ControlChannelHandle {
-            shutdown_tx,
+            _shutdown_tx: shutdown_tx,
             data_ch_tx,
         }
-    }
-
-    #[allow(dead_code)]
-    fn shutdown(self) {
-        let _ = self.shutdown_tx.send(true);
     }
 }
 

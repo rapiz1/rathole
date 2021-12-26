@@ -1,5 +1,5 @@
 use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
-use crate::config_watcher::ServiceChangeEvent;
+use crate::config_watcher::ServiceChange;
 use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
@@ -30,7 +30,7 @@ use crate::constants::{UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
 pub async fn run_client(
     config: &Config,
     shutdown_rx: broadcast::Receiver<bool>,
-    service_rx: mpsc::Receiver<ServiceChangeEvent>,
+    service_rx: mpsc::Receiver<ServiceChange>,
 ) -> Result<()> {
     let config = match &config.client {
         Some(v) => v,
@@ -93,7 +93,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
     async fn run(
         &mut self,
         mut shutdown_rx: broadcast::Receiver<bool>,
-        mut service_rx: mpsc::Receiver<ServiceChangeEvent>,
+        mut service_rx: mpsc::Receiver<ServiceChange>,
     ) -> Result<()> {
         for (name, config) in &self.config.services {
             // Create a control channel for each service defined
@@ -120,7 +120,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
                 e = service_rx.recv() => {
                     if let Some(e) = e {
                         match e {
-                            ServiceChangeEvent::ClientAdd(s)=> {
+                            ServiceChange::ClientAdd(s)=> {
                                 let name = s.name.clone();
                                 let handle = ControlChannelHandle::new(
                                     s,
@@ -129,7 +129,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
                                 );
                                 let _ = self.service_handles.insert(name, handle);
                             },
-                            ServiceChangeEvent::ClientDelete(s)=> {
+                            ServiceChange::ClientDelete(s)=> {
                                 let _ = self.service_handles.remove(&s);
                             },
                             _ => ()
