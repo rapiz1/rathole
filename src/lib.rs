@@ -10,7 +10,7 @@ mod transport;
 pub use cli::Cli;
 use cli::KeypairType;
 pub use config::Config;
-use config_watcher::ServiceChangeEvent;
+use config_watcher::ServiceChange;
 pub use constants::UDP_BUFFER_SIZE;
 
 use anyhow::Result;
@@ -27,7 +27,7 @@ mod server;
 #[cfg(feature = "server")]
 use server::run_server;
 
-use crate::config_watcher::{ConfigChangeEvent, ConfigWatcherHandle};
+use crate::config_watcher::{ConfigChange, ConfigWatcherHandle};
 
 const DEFAULT_CURVE: KeypairType = KeypairType::X25519;
 
@@ -76,12 +76,11 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
     let (shutdown_tx, _) = broadcast::channel(1);
 
     // (The join handle of the last instance, The service update channel sender)
-    let mut last_instance: Option<(tokio::task::JoinHandle<_>, mpsc::Sender<ServiceChangeEvent>)> =
-        None;
+    let mut last_instance: Option<(tokio::task::JoinHandle<_>, mpsc::Sender<ServiceChange>)> = None;
 
     while let Some(e) = cfg_watcher.event_rx.recv().await {
         match e {
-            ConfigChangeEvent::General(config) => {
+            ConfigChange::General(config) => {
                 if let Some((i, _)) = last_instance {
                     info!("General configuration change detected. Restarting...");
                     shutdown_tx.send(true)?;
@@ -102,7 +101,7 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
                     service_update_tx,
                 ));
             }
-            ConfigChangeEvent::ServiceChange(service_event) => {
+            ConfigChange::ServiceChange(service_event) => {
                 info!("Service change detcted. {:?}", service_event);
                 if let Some((_, service_update_tx)) = &last_instance {
                     let _ = service_update_tx.send(service_event).await;
@@ -110,6 +109,9 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
             }
         }
     }
+
+    let _ = shutdown_tx.send(true);
+
     Ok(())
 }
 
@@ -117,7 +119,7 @@ async fn run_instance(
     config: Config,
     args: Cli,
     shutdown_rx: broadcast::Receiver<bool>,
-    service_update: mpsc::Receiver<ServiceChangeEvent>,
+    service_update: mpsc::Receiver<ServiceChange>,
 ) -> Result<()> {
     match determine_run_mode(&config, &args) {
         RunMode::Undetermine => panic!("Cannot determine running as a server or a client"),
