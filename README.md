@@ -3,13 +3,16 @@
 
 A fast, secure and stable reverse proxy for NAT traversal, written in Rust
 
-rathole, like [frp](https://github.com/fatedier/frp), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
+rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.com/inconshreveable/ngrok), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
+
+## Features
 
 - **High Performance** Much higher throughput can be achieved than frp. See [Benchmark](#Benchmark)
 - **Low Resource Consumption** Much less memory is consumed and well managed by Rust.
-- **Secure Model** Tokens of services are mandatory and service-wise. The server and clients are responsible for their own configs.
-- **Encryption** With the help of the Noise Protocol, encryption can be configured at ease. No need to create a self-signed certificate!
 - **Optimized Binary** While small enough by default, `rathole` can be customized to be **as small as ~500KiB** to fit the constraints of devices, like embedded devices as routers.
+- **Secure Model** Tokens of services are mandatory and service-wise. The server and clients are responsible for their own configs.
+- **Encryption** With the help of the Noise Protocol, encryption can be configured at ease. No need to create a self-signed certificate! TLS is also supported.
+- **Hot Reload** Services can be added or removed dynamically by hot-reloading the config file. HTTP API is WIP.
 
 ## Quickstart
 
@@ -138,8 +141,8 @@ See also [Benchmark](./docs/benchmark.md).
 
 ## Development Status
 
-`rathole` is in active development. A load of features is on the way:
+`rathole` is under active development. A load of features is on the way:
 - [x] TLS support
 - [x] UDP support
-- [ ] Hot reloading
+- [x] Hot reloading
 - [ ] HTTP APIs for configuration
