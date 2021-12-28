@@ -1,7 +1,7 @@
 # rathole
 ![rathole-logo](./docs/img/rathole-logo.png)
 
-A fast, secure and stable reverse proxy for NAT traversal, written in Rust
+A secure, stable and high-performance reverse proxy for NAT traversal, written in Rust
 
 rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.com/inconshreveable/ngrok), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
 
@@ -131,13 +131,14 @@ If `RUST_LOG` is not present, the default logging level is `info`.
 
 ## Benchmark
 
-rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle more connections. Also it can provide much better bandwidth than frp.
+rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle a more connections, provide larger bandwidth, with less memory usage.
 
 See also [Benchmark](./docs/benchmark.md).
 
+![http_throughput](./docs/img/http_throughput.svg)
 ![tcp_bitrate](./docs/img/tcp_bitrate.svg)
-
-![tcp_latency](./docs/img/tcp_latency.svg)
+![udp_bitrate](./docs/img/udp_bitrate.svg)
+![mem](./docs/img/mem-graph.png)
 
 ## Development Status
 
