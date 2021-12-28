@@ -1,17 +1,19 @@
 # Benchmark
 
-> Date: 2021/12/14
+> Date: 2021/12/28
+>
+> Version: commit 1180c7e538564efd69742f22e77453a1b74a5ed2
 > 
-> Arch Linux with 5.15.7-arch1-1 kernel
+> Arch Linux with 5.15.11-arch2-1 kernel
 >
-> Intel i7-6600U CPU @ 2.60GHz
+> Intel Xeon CPU E5-2620 @ 2.00GHz *2
 >
-> 20GB RAM
+> 16GB RAM
 
-
-## Bitrate
+## Bandwidth
 
 ![tcp_bitrate](./img/tcp_bitrate.svg)
+![udp_bitrate](./img/udp_bitrate.svg)
 
 rathole with the following configuration:
 ```toml
@@ -19,14 +21,20 @@ rathole with the following configuration:
 remote_addr = "localhost:2333"
 default_token = "123"
 
-[client.services.foo1]
+[client.services.bench-tcp]
+local_addr = "127.0.0.1:80"
+[client.services.bench-udp]
+type = "udp"
 local_addr = "127.0.0.1:80"
 
 [server]
 bind_addr = "0.0.0.0:2333"
 default_token = "123"
 
-[server.services.foo1]
+[server.services.bench-tcp]
+bind_addr = "0.0.0.0:5202"
+[server.services.bench-udp]
+type = "udp"
 bind_addr = "0.0.0.0:5202"
 ```
 
@@ -46,8 +54,13 @@ server_port = 7000
 authentication_method = token
 token = 1233
 
-[ssh]
+[bench-tcp]
 type = tcp
+local_ip = 127.0.0.1
+local_port = 80
+remote_port = 5203
+[bench-udp]
+type = udp
 local_ip = 127.0.0.1
 local_port = 80
 remote_port = 5203
@@ -71,17 +84,50 @@ For frp benchmark:
 $ iperf3 -c 127.0.0.1 -p 5203
 ```
 
-## Latency
+## HTTP
 
 nginx/1.20.2 listens on port 80, with the default test page.
 
 frp and rathole configuration is same with the previous section.
 
-Using [ali](https://github.com/nakabonne/ali) with different rate.
+[vegeta](https://github.com/tsenart/vegeta) is used to generate HTTP load.
 
-e.g. for rathole 10 QPS benchmark:
+### HTTP Throughput
+
+The following commands are used to benchmark rathole and frp. Note that if you want to do a benchmark yourself, `-max-workers` should be adjusted to get the accurate results for your machine.
+
 ```
-ali -r 10 http://127.0.0.1:5202
+echo 'GET http://127.0.0.1:5203' | vegeta attack -rate 0 -duration 30s -max-workers 48
+echo 'GET http://127.0.0.1:5202' | vegeta attack -rate 0 -duration 30s -max-workers 48
 ```
 
-![tcp_latency](./img/tcp_latency.svg)
+![http_throughput](./img/http_throughput.svg)
+
+### HTTP Latency
+
+`rathole` has very similar latency to `frp`, but can handle more connections
+
+Here's a table, latency is in ms
+
+|QPS|latency(rathole)|latency(frp)|
+|--|--|---|
+|1|2.113|2.55|
+|1000|1.723|1.742|
+|2000|1.845|1.749|
+|3000|2.064|2.011|
+|4000|2.569|7907|
+
+As you can see, for QPS from 1 to 3000, rathole and frp have nearly identical latency.
+But with QPS of 4000, frp starts reporting lots of errors and the latency grows to even seconds. This kind of reflects the throughput in the previous section.
+
+Thus, in terms of latency, rathole and frp are nearly the same. But rathole can handle more connections.
+
+[Script to benchmark latency](../benches/scripts/http/latency.sh)
+
+## Memory Usage
+
+![mem](./img/mem-graph.png)
+
+rathole uses much less memory than frp.
+
+[Script to benchmark memory](../benches/scripts/mem/mem.sh)
