@@ -6,7 +6,6 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
-use tracing::error;
 
 #[derive(Debug)]
 pub struct TcpTransport {}
@@ -26,17 +25,13 @@ impl Transport for TcpTransport {
 
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
         let (s, addr) = a.accept().await?;
+        set_tcp_keepalive(&s);
         Ok((s, addr))
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
         let s = TcpStream::connect(addr).await?;
-        if let Err(e) = set_tcp_keepalive(&s) {
-            error!(
-                "Failed to set TCP keepalive. The connection maybe unstable: {:?}",
-                e
-            );
-        }
+        set_tcp_keepalive(&s);
         Ok(s)
     }
 }
