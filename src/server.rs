@@ -353,9 +353,6 @@ where
     // and the connection pool task are created.
     #[instrument(skip_all, fields(service = %service.name))]
     fn new(conn: T::Stream, service: ServerServiceConfig) -> ControlChannelHandle<T> {
-        // Save the name string for logging
-        let name = service.name.clone();
-
         // Create a shutdown channel
         let (shutdown_tx, shutdown_rx) = broadcast::channel::<bool>(1);
 
@@ -407,11 +404,14 @@ where
         };
 
         // Run the control channel
-        tokio::spawn(async move {
-            if let Err(err) = ch.run().await {
-                error!(%name, "{}", err);
+        tokio::spawn(
+            async move {
+                if let Err(err) = ch.run().await {
+                    error!("{:?}", err);
+                }
             }
-        });
+            .instrument(Span::current()),
+        );
 
         ControlChannelHandle {
             _shutdown_tx: shutdown_tx,
@@ -513,10 +513,10 @@ fn tcp_listen_and_send(
                         }
                         Ok((incoming, addr)) => {
                             // For every visitor, request to create a data channel
-                            if let Err(e) = data_ch_req_tx.send(true) {
+                            if let Err(e) = data_ch_req_tx.send(true).with_context(|| "Failed to send data chan create request") {
                                 // An error indicates the control channel is broken
                                 // So break the loop
-                                error!("{}", e);
+                                error!("{:?}", e);
                                 break;
                             }
 
@@ -534,7 +534,7 @@ fn tcp_listen_and_send(
                 }
             }
         }
-    });
+    }.instrument(Span::current()));
 
     rx
 }

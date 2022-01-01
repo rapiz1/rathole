@@ -364,12 +364,14 @@ impl<T: 'static + Transport> ControlChannel<T> {
             .with_context(|| format!("Failed to connect to the server: {}", &self.remote_addr))?;
 
         // Send hello
+        debug!("Sending hello");
         let hello_send =
             Hello::ControlChannelHello(CURRENT_PROTO_VRESION, self.digest[..].try_into().unwrap());
         conn.write_all(&bincode::serialize(&hello_send).unwrap())
             .await?;
 
         // Read hello))
+        debug!("Reading hello");
         let nonce = match read_hello(&mut conn)
             .await
             .with_context(|| "Failed to read hello from the server")?
@@ -381,6 +383,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
         };
 
         // Send auth
+        debug!("Sending auth");
         let mut concat = Vec::from(self.service.token.as_ref().unwrap().as_bytes());
         concat.extend_from_slice(&nonce);
 
@@ -389,6 +392,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
         conn.write_all(&bincode::serialize(&auth).unwrap()).await?;
 
         // Read ack
+        debug!("Reading ack");
         match read_ack(&mut conn).await? {
             Ack::Ok => {}
             v => {
@@ -444,6 +448,8 @@ impl ControlChannelHandle {
         transport: Arc<T>,
     ) -> ControlChannelHandle {
         let digest = protocol::digest(service.name.as_bytes());
+
+        info!("Starting {}", hex::encode(digest));
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
         let mut s = ControlChannel {
             digest,
