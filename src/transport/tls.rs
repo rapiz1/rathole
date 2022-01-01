@@ -9,7 +9,6 @@ use tokio::fs;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio_native_tls::native_tls::{self, Certificate, Identity};
 use tokio_native_tls::{TlsAcceptor, TlsConnector, TlsStream};
-use tracing::error;
 
 #[derive(Debug)]
 pub struct TlsTransport {
@@ -66,6 +65,8 @@ impl Transport for TlsTransport {
 
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
         let (conn, addr) = a.0.accept().await?;
+        set_tcp_keepalive(&conn);
+
         let conn = a.1.accept(conn).await?;
 
         Ok((conn, addr))
@@ -73,12 +74,8 @@ impl Transport for TlsTransport {
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
         let conn = TcpStream::connect(&addr).await?;
-        if let Err(e) = set_tcp_keepalive(&conn) {
-            error!(
-                "Failed to set TCP keepalive. The connection maybe unstable: {:?}",
-                e
-            );
-        }
+        set_tcp_keepalive(&conn);
+
         let connector = self.connector.as_ref().unwrap();
         Ok(connector
             .connect(
