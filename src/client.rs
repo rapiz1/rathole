@@ -370,7 +370,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
         conn.write_all(&bincode::serialize(&hello_send).unwrap())
             .await?;
 
-        // Read hello))
+        // Read hello
         debug!("Reading hello");
         let nonce = match read_hello(&mut conn)
             .await
