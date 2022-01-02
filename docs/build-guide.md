@@ -8,7 +8,7 @@ cargo build --release
 ```
 
 ## Customize the build
-`rathole` comes with lots of *crate features* that determine whether a certain feature will be compiled or not. Supported features can be checked out in `Cargo.toml`.
+`rathole` comes with lots of *crate features* that determine whether a certain feature will be compiled or not. Supported features can be checked out in `[features]` of [Cargo.toml](../Cargo.toml).
 
 For example, to build `rathole` with the `client` and `noise` feature:
 ```
