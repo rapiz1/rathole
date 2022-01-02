@@ -7,6 +7,7 @@ description = "A reverse proxy for NAT traversal"
 license = "Apache-2.0"
 repository = "https://github.com/rapiz1/rathole"
 readme = "README.md"
+build = "build.rs"
 
 [features]
 default = ["server", "client", "tls", "noise", "notify"]
@@ -56,3 +57,8 @@ snowstorm = { git = "https://github.com/black-binary/snowstorm", rev = "1887755"
 base64 = { version = "0.13.0", optional = true }
 notify = { version = "5.0.0-pre.13", optional = true }
 console-subscriber = { version = "0.1.0", optional = true, features = ["parking_lot"] }
+const_format = "0.2"
+
+[build-dependencies]
+vergen = "5"
+anyhow = "1.0"
