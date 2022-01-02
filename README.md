@@ -66,7 +66,7 @@ But the `[client]` and `[server]` block can also be put in one file. Then on the
 
 Some configuration examples are provided under [examples](./examples).
 
-The Noise Protocol can be easily used to secure the traffic, see [Security](./docs/security.md).
+The Noise Protocol can be easily used to secure the traffic. TLS can also be used. See [Security](./docs/security.md).
 
 Here is the full configuration specification:
 ```toml
