@@ -6,10 +6,34 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  # Documentation suggests ${{ github.head_ref }}, but that's only available on pull_request/pull_request_target triggers, so using ${{ github.ref }}.
+  # On master, we want all builds to complete even if merging happens faster to make it easier to discover at which point something broke.
+  group: ${{ github.ref == 'refs/heads/master' && format('ci-master-{0}', github.sha) || format('ci-{0}', github.ref) }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  lints:
+    name: Lints
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        components: clippy
+    - uses: Swatinem/rust-cache@v1
+    - name: Clippy
+      run: cargo clippy -- -D warnings
+    - name: Setup cargo-hack
+      run: cargo install cargo-hack
+    - name: Check all features
+      run: cargo hack check --feature-powerset --no-dev-deps
+
   build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -34,14 +58,6 @@ jobs:
         toolchain: stable
         components: clippy
     - uses: Swatinem/rust-cache@v1
-    - name: Clippy
-      run: cargo clippy -- -D warnings
-    - name: Build
-      run: cargo build --verbose
-    - name: Setup cargo-hack
-      run: cargo install cargo-hack
-    - name: Build with features
-      run: cargo hack check --feature-powerset --no-dev-deps
     - name: Run tests
       run: cargo test --verbose
     - name: Build release
