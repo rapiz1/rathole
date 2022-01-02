@@ -48,7 +48,6 @@ pub async fn run_server(
             }
         };
 
-    //TODO: Maybe use a Box<dyn trait> here to reduce duplicated code
     match config.transport.transport_type {
         TransportType::Tcp => {
             let mut server = Server::<TcpTransport>::from(config).await?;
@@ -86,8 +85,6 @@ struct Server<'a, T: Transport> {
     // `[server]` config
     config: &'a ServerConfig,
 
-    // TODO: Maybe the rwlock is unnecessary.
-    // Keep it until the hot reloading feature is implemented
     // `[server.services]` config, indexed by ServiceDigest
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
     // Collection of contorl channels
@@ -332,7 +329,6 @@ async fn do_data_channel_handshake<T: 'static + Transport>(
             handle.data_ch_tx.send(conn).await?;
         }
         None => {
-            // TODO: Maybe print IP here
             warn!("Data channel has incorrect nonce");
         }
     }
