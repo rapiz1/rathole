@@ -1,5 +1,26 @@
 # Security
 
+By default, `rathole` forwards traffic as it is. Different options can be enabled to secure the traffic.
+
+## TLS
+Checkout the [example](../examples/tls)
+### Client
+Normally, a self-signed certificate is used. In this case, the client needs to trust the CA. `trusted_root` is the path to the root CA's certificate PEM file.
+`hostname` is the hostname that the client used to validate aginst the certificate that the server presents.
+```
+[client.transport.tls]
+trusted_root = "example/tls/ca-cert.pem"
+hostname = "0.0.0.0"
+```
+
+### Server
+PKCS#12 archives are needed to run the server.
+
+It can be created using openssl like:
+```
+openssl pkcs12 -export -out identity.pfx -inkey server-key.pem -in server-cert.pem -certfile ca_chain_certs.pem
+```
+
 ## Noise Protocol
 ### Quickstart for the Noise Protocl
 In one word, the [Noise Protocol](http://noiseprotocol.org/noise.html) is a lightweigt, easy to configure and drop-in replacement of TLS. No need to create a self-sign certificate to secure the connection.
