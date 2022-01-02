@@ -16,6 +16,8 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
 
 ## Quickstart
 
+A full-powered `rathole` can be obtained from the [release](https://github.com/rapiz1/rathole/releases) page. Or [build from source](docs/build-guide.md) for other platforms and customizing the binary.
+
 To use rathole, you need a server with a public IP, and a device behind the NAT, where some services that need to be exposed to the Internet. 
 
 Assuming you have a NAS at home behind the NAT, and want to expose its ssh service to the Internet:

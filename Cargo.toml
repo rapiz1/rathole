@@ -10,11 +10,18 @@ readme = "README.md"
 build = "build.rs"
 
 [features]
-default = ["server", "client", "tls", "noise", "notify"]
+default = ["server", "client", "tls", "noise", "hot-reload"]
+
+# Run as a server
 server = []
+# Run as a client
 client = []
+# TLS support
 tls = ["tokio-native-tls"]
+# Noise support
 noise = ["snowstorm", "base64"]
+# Configuration hot-reload support
+hot-reload = ["notify"]
 
 # Feature to enable tokio-console. Disabled by default.
 # Don't enable it unless for debugging purposes.
