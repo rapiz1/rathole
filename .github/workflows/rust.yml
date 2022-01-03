@@ -62,6 +62,9 @@ jobs:
       run: cargo test --verbose
     - name: Build release
       run: cargo build --release
+    - name: Strip
+      if: matrix.os == 'ubuntu-latest'
+      run: strip target/release/${{ matrix.artifact_name }}
     - uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.asset_name }}
