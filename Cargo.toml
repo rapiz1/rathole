@@ -28,7 +28,11 @@ hot-reload = ["notify"]
 console = ["console-subscriber", "tokio/tracing"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+panic = "abort"
+
 [profile.release]
+panic = "abort"
 lto = true
 
 [profile.bench]
@@ -39,7 +43,6 @@ inherits = "release"
 opt-level = "z"
 lto = true
 codegen-units = 1
-panic = "abort"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
