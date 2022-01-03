@@ -55,6 +55,8 @@ async fn tcp() -> Result<()> {
     });
 
     test("tests/for_tcp/tcp_transport.toml", Type::Tcp).await?;
+    // FIXME: Self-signed certificate on Mac requires mannual interference. Disable CI for now
+    #[cfg(not(target_os = "macos"))]
     test("tests/for_tcp/tls_transport.toml", Type::Tcp).await?;
     test("tests/for_tcp/noise_transport.toml", Type::Tcp).await?;
 
@@ -80,6 +82,8 @@ async fn udp() -> Result<()> {
     });
 
     test("tests/for_udp/tcp_transport.toml", Type::Udp).await?;
+    // See above
+    #[cfg(not(target_os = "macos"))]
     test("tests/for_udp/tls_transport.toml", Type::Udp).await?;
     test("tests/for_udp/noise_transport.toml", Type::Udp).await?;
 
