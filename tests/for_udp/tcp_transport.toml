@@ -1,5 +1,5 @@
 [client]
-remote_addr = "localhost:2332" 
+remote_addr = "127.0.0.1:2332" 
 default_token = "default_token_if_not_specify" 
 
 [client.transport]
@@ -7,10 +7,10 @@ type = "tcp"
 
 [client.services.echo] 
 type = "udp"
-local_addr = "localhost:8080" 
+local_addr = "127.0.0.1:8080" 
 [client.services.pingpong] 
 type = "udp"
-local_addr = "localhost:8081" 
+local_addr = "127.0.0.1:8081" 
 
 [server]
 bind_addr = "0.0.0.0:2332" 
