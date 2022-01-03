@@ -7,18 +7,18 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
 
 ## Features
 
-- **High Performance** Much higher throughput can be achieved than frp. See [Benchmark](#Benchmark)
-- **Low Resource Consumption** Much less memory is consumed and well managed by Rust.
-- **Optimized Binary** While small enough by default, `rathole` can be customized to be **as small as ~500KiB** to fit the constraints of devices, like embedded devices as routers.
-- **Secure Model** Tokens of services are mandatory and service-wise. The server and clients are responsible for their own configs.
-- **Encryption** With the help of the Noise Protocol, encryption can be configured at ease. No need to create a self-signed certificate! TLS is also supported.
-- **Hot Reload** Services can be added or removed dynamically by hot-reloading the config file. HTTP API is WIP.
+- **High Performance** Much higher throughput can be achieved than frp, and more stable when handling a large volume of connections. See [Benchmark](#Benchmark)
+- **Low Resource Consumption** Consumes much fewer memory than similar tools. See [Benchmark](#Benchmark). [The binary can be](docs/build-guide.md) **as small as ~500KiB** to fit the constraints of devices, like embedded devices as routers.
+- **Security** Tokens of services are mandatory and service-wise. The server and clients are responsible for their own configs. With the optional Noise Protocol, encryption can be configured at ease. No need to create a self-signed certificate! TLS is also supported.
+- **Hot Reload** Services can be added or removed dynamically by hot-reloading the configuration file. HTTP API is WIP.
 
 ## Quickstart
 
 A full-powered `rathole` can be obtained from the [release](https://github.com/rapiz1/rathole/releases) page. Or [build from source](docs/build-guide.md) for other platforms and customizing the binary.
 
-To use rathole, you need a server with a public IP, and a device behind the NAT, where some services that need to be exposed to the Internet. 
+The usage of `rathole` is ver similar to frp. If you have experience with the latter, then the configuration is very easy for you. The only difference is that configuration of a service is splited into the client side and the server side, and a token is mandatory.
+
+To use `rathole`, you need a server with a public IP, and a device behind the NAT, where some services that need to be exposed to the Internet. 
 
 Assuming you have a NAS at home behind the NAT, and want to expose its ssh service to the Internet:
 
@@ -44,6 +44,7 @@ Then run:
 
 Create `client.toml` with the following content and accommodate it to your needs.
 ```toml
+# client.toml
 [client]
 remote_addr = "myserver.com:2333" # The address of the server. The port must be the same with the port in `server.bind_addr`
 
@@ -66,9 +67,9 @@ So you can `ssh myserver.com:5202` to ssh to your NAS.
 
 But the `[client]` and `[server]` block can also be put in one file. Then on the server side, run `rathole --server config.toml` and on the client side, run `rathole --client config.toml` to explictly tell `rathole` the running mode.
 
-Some configuration examples are provided under [examples](./examples).
+Before heading to the full configuration specification, it's recommaned to skim [the configuration examples](./examples) to get a feeling of the configuration format.
 
-The Noise Protocol can be easily used to secure the traffic. TLS can also be used. See [Security](./docs/security.md).
+See [Security](./docs/security.md) for more details about encryption and the `transport` block.
 
 Here is the full configuration specification:
 ```toml
