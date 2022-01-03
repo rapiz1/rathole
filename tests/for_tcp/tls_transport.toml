@@ -1,5 +1,5 @@
 [client]
-remote_addr = "localhost:2333" 
+remote_addr = "127.0.0.1:2333" 
 default_token = "default_token_if_not_specify" 
 
 [client.transport]
@@ -9,9 +9,9 @@ trusted_root = "examples/tls/ca-cert.pem"
 hostname = "0.0.0.0"
 
 [client.services.echo] 
-local_addr = "localhost:8080" 
+local_addr = "127.0.0.1:8080" 
 [client.services.pingpong] 
-local_addr = "localhost:8081" 
+local_addr = "127.0.0.1:8081" 
 
 [server]
 bind_addr = "0.0.0.0:2333" 

@@ -15,10 +15,10 @@ use crate::common::run_rathole_server;
 
 mod common;
 
-const ECHO_SERVER_ADDR: &str = "0.0.0.0:8080";
-const PINGPONG_SERVER_ADDR: &str = "0.0.0.0:8081";
-const ECHO_SERVER_ADDR_EXPOSED: &str = "0.0.0.0:2334";
-const PINGPONG_SERVER_ADDR_EXPOSED: &str = "0.0.0.0:2335";
+const ECHO_SERVER_ADDR: &str = "127.0.0.1:8080";
+const PINGPONG_SERVER_ADDR: &str = "127.0.0.1:8081";
+const ECHO_SERVER_ADDR_EXPOSED: &str = "127.0.0.1:2334";
+const PINGPONG_SERVER_ADDR_EXPOSED: &str = "127.0.0.1:2335";
 const HITTER_NUM: usize = 4;
 
 #[derive(Clone, Copy, Debug)]
@@ -218,7 +218,7 @@ async fn tcp_echo_hitter(addr: &'static str) -> Result<()> {
 }
 
 async fn udp_echo_hitter(addr: &'static str) -> Result<()> {
-    let conn = UdpSocket::bind("0.0.0.0:0").await?;
+    let conn = UdpSocket::bind("127.0.0.1:0").await?;
     conn.connect(addr).await?;
 
     let mut wr = [0u8; 128];
@@ -253,7 +253,7 @@ async fn tcp_pingpong_hitter(addr: &'static str) -> Result<()> {
 }
 
 async fn udp_pingpong_hitter(addr: &'static str) -> Result<()> {
-    let conn = UdpSocket::bind("0.0.0.0:0").await?;
+    let conn = UdpSocket::bind("127.0.0.1:0").await?;
     conn.connect(&addr).await?;
 
     let wr = PING.as_bytes();
