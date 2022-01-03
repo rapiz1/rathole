@@ -1,6 +1,8 @@
 # rathole
 ![rathole-logo](./docs/img/rathole-logo.png)
 
+[English](README.md) | [简体中文](README-zh.md)
+
 A secure, stable and high-performance reverse proxy for NAT traversal, written in Rust
 
 rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.com/inconshreveable/ngrok), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
