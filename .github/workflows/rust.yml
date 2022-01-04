@@ -63,5 +63,5 @@ jobs:
       run: cargo test --release --verbose
     - uses: actions/upload-artifact@v2
       with:
-        name: ${{ matrix.asset_name }}
+        name: rathole-${{ matrix.target }}
         path: target/release/${{ matrix.exe }}
