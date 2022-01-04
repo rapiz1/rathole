@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:        
+      - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Cross build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            exe: rathole
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exe: rathole
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            exe: rathole
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exe: rathole.exe
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    - name: Install cross
+      run: cargo install --version 0.1.16 cross
+    - name: Build release
+      run: cross build --release --target ${{ matrix.target }}
+    - name: Run tests
+      run: cross test --release --target ${{ matrix.target }} --verbose
+    - name: Strip
+      if: matrix.os == 'ubuntu-latest'
+      run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
+    - uses: actions/upload-artifact@v2
+      with:
+        name: rathole-${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+    - name: Release
+      uses: svenstaro/upload-release-action@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: target/${{ matrix.target }}/release/${{ matrix.exe }}
+        asset_name: rathole-${{ matrix.target }}
+        tag: ${{ github.ref }}
