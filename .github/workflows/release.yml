@@ -43,6 +43,13 @@ jobs:
     - name: Strip
       if: matrix.os == 'ubuntu-latest'
       run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
+    - name: Run UPX
+      if: matrix.os == 'ubuntu-latest'
+      uses: crazy-max/ghaction-upx@v1
+      with:
+        version: v3.96
+        files: target/${{ matrix.target }}/release/${{ matrix.exe }}
+        args: -q --best -lzma
     - uses: actions/upload-artifact@v2
       with:
         name: rathole-${{ matrix.target }}
