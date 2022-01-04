@@ -65,6 +65,7 @@ jobs:
             cargo install cargo-strip
             cargo strip --target ${{ matrix.target }}
     - name: Run UPX
+      continue-on-error: true
       if: matrix.os == 'ubuntu-latest'
       uses: crazy-max/ghaction-upx@v1
       with:
