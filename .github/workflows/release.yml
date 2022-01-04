@@ -52,13 +52,15 @@ jobs:
         toolchain: stable
     - name: Install cross
       run: cargo install --version 0.1.16 cross
-    - name: Build release
-      run: cross build --release --target ${{ matrix.target }}
     - name: Run tests
       run: cross test --release --target ${{ matrix.target }} --verbose
+    - name: Build release
+      run: cross build --release --target ${{ matrix.target }}
     - name: Strip
       if: matrix.os == 'ubuntu-latest'
-      run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
+      run: |
+            cargo install --force cargo-strip
+            cargo strip --target ${{ matrix.target }}
     - name: Run UPX
       if: matrix.os == 'ubuntu-latest'
       uses: crazy-max/ghaction-upx@v1
