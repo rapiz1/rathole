@@ -21,13 +21,32 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             exe: rathole
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: mips-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: mipsel-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: mips64-unknown-linux-muslabi64
+            exe: rathole
+          - os: ubuntu-latest
+            target: mips64el-unknown-linux-muslabi64
+            exe: rathole
+
           - os: macos-latest
             target: x86_64-apple-darwin
             exe: rathole
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            exe: rathole
+
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             exe: rathole.exe
-
     steps:
     - uses: actions/checkout@v2
     - uses: actions-rs/toolchain@v1
