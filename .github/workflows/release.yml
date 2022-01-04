@@ -59,10 +59,10 @@ jobs:
       run: cross test --release --target ${{ matrix.target }} --verbose
     - name: Build release
       run: cross build --release --target ${{ matrix.target }}
-    - name: Install cargo-strip
-      run: cargo install cargo-strip
     - name: Strip
-      run: cargo strip --target ${{ matrix.target }}
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+      continue-on-error: true
+      run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
     - name: Run UPX
       # Upx may not support some platforms. Ignore the errors
       continue-on-error: true
