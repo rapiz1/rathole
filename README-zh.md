@@ -32,7 +32,7 @@ rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://g
 [server]
 bind_addr = "0.0.0.0:2333" # `2333` 配置了服务端监听客户端连接的端口
 
-[server.services.my_nas_ssh]。
+[server.services.my_nas_ssh]
 token = "use_a_secret_that_only_you_know" # 用于验证的 token
 bind_addr = "0.0.0.0:5202" # `5202` 配置了将 `my_nas_ssh` 暴露给互联网的端口
 ```
