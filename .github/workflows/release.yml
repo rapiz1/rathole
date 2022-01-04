@@ -59,7 +59,8 @@ jobs:
       with:
         type: zip
         filename: rathole-${{ matrix.target }}.zip
-        path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+        directory: target/${{ matrix.target }}/release/
+        path: ${{ matrix.exe }}
     - name: Publish
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
