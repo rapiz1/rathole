@@ -67,7 +67,7 @@ jobs:
       with:
         version: v3.96
         files: target/${{ matrix.target }}/release/${{ matrix.exe }}
-        args: -q --best -lzma
+        args: -q --best --lzma
     - uses: actions/upload-artifact@v2
       with:
         name: rathole-${{ matrix.target }}
