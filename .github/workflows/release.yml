@@ -48,11 +48,7 @@ jobs:
         name: rathole-${{ matrix.target }}
         path: target/${{ matrix.target }}/release/${{ matrix.exe }}
     - name: Release
-      uses: fnkr/github-action-ghr@v1
+      uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
-      env:
-        GHR_COMPRESS: zip
-        GHR_PATH: target/${{ matrix.target }}/release/${{ matrix.exe }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GHR_DELETE: false
-        GHR_REPLACE: true
+      with:
+        files: target/${{ matrix.target }}/release/${{ matrix.exe }}
