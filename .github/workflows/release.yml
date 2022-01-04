@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:        
+      - '*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Cross build for ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            exe: rathole
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: mips-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: mipsel-unknown-linux-musl
+            exe: rathole
+          - os: ubuntu-latest
+            target: mips64-unknown-linux-gnuabi64
+            exe: rathole
+          - os: ubuntu-latest
+            target: mips64el-unknown-linux-gnuabi64
+            exe: rathole
+
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            exe: rathole
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exe: rathole.exe
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+    - uses: Swatinem/rust-cache@v1
+      with:
+        key: ${{ matrix.target }}
+    - name: Install cross
+      run: cargo install --version 0.1.16 cross
+    - name: Run tests
+      run: cross test --release --target ${{ matrix.target }} --verbose
+    - name: Build release
+      run: cross build --release --target ${{ matrix.target }}
+    - name: Install cargo-strip
+      run: cargo install cargo-strip
+    - name: Strip
+      run: cargo strip --target ${{ matrix.target }}
+    - name: Run UPX
+      # Upx may not support some platforms. Ignore the errors
+      continue-on-error: true
+      if: matrix.os == 'ubuntu-latest'
+      uses: crazy-max/ghaction-upx@v1
+      with:
+        version: v3.96
+        files: target/${{ matrix.target }}/release/${{ matrix.exe }}
+        args: -q --best --lzma
+    - uses: actions/upload-artifact@v2
+      with:
+        name: rathole-${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+    - name: Zip Release
+      uses: TheDoctor0/zip-release@0.6.0
+      with:
+        type: zip
+        filename: rathole-${{ matrix.target }}.zip
+        directory: target/${{ matrix.target }}/release/
+        path: ${{ matrix.exe }}
+    - name: Publish
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: target/${{ matrix.target }}/release/rathole-${{ matrix.target }}.zip
+        generate_release_notes: true
