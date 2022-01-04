@@ -52,3 +52,4 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       with:
         files: target/${{ matrix.target }}/release/${{ matrix.exe }}
+        generate_release_notes: true
