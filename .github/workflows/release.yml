@@ -65,6 +65,7 @@ jobs:
             cargo install cargo-strip
             cargo strip --target ${{ matrix.target }}
     - name: Run UPX
+      # Upx may not support some platforms. Ignore the errors
       continue-on-error: true
       if: matrix.os == 'ubuntu-latest'
       uses: crazy-max/ghaction-upx@v1
@@ -87,5 +88,5 @@ jobs:
       uses: softprops/action-gh-release@v1
       if: startsWith(github.ref, 'refs/tags/')
       with:
-        files: rathole-${{ matrix.target }}.zip
+        files: target/${{ matrix.target }}/release/rathole-${{ matrix.target }}.zip
         generate_release_notes: true
