@@ -31,17 +31,14 @@ jobs:
             target: mipsel-unknown-linux-musl
             exe: rathole
           - os: ubuntu-latest
-            target: mips64-unknown-linux-muslabi64
+            target: mips64-unknown-linux-gnuabi64
             exe: rathole
           - os: ubuntu-latest
-            target: mips64el-unknown-linux-muslabi64
+            target: mips64el-unknown-linux-gnuabi64
             exe: rathole
 
           - os: macos-latest
             target: x86_64-apple-darwin
-            exe: rathole
-          - os: macos-latest
-            target: aarch64-apple-darwin
             exe: rathole
 
           - os: windows-latest
