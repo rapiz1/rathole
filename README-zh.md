@@ -153,4 +153,4 @@ rathole 的延迟与 [frp](https://github.com/fatedier/frp) 相近，在高并�
 - [x] 支持TLS
 - [x] 支持UDP
 - [x] 热重载
-- [] 用于配置的HTTP APIs
+- [ ] 用于配置的HTTP APIs
