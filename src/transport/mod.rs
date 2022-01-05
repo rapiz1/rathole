@@ -16,7 +16,7 @@ pub trait Transport: Debug + Send + Sync {
     where
         Self: Sized;
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor>;
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)>;
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::Stream, SocketAddr)>;
     async fn connect(&self, addr: &str) -> Result<Self::Stream>;
 }
 
@@ -31,3 +31,8 @@ pub use tls::TlsTransport;
 mod noise;
 #[cfg(feature = "noise")]
 pub use noise::NoiseTransport;
+
+#[cfg(feature = "quic")]
+mod quic;
+#[cfg(feature = "noise")]
+pub use quic::QuicTransport;

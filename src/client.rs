@@ -6,7 +6,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{QuicTransport, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
@@ -61,6 +61,15 @@ pub async fn run_client(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Quic => {
+            #[cfg(feature = "quic")]
+                {
+                    let mut client = Client::<QuicTransport>::from(config).await?;
+                    client.run(shutdown_rx, service_rx).await
+                }
+            #[cfg(not(feature = "quic"))]
+                crate::helper::feature_not_compile("quic")
         }
     }
 }

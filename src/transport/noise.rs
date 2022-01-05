@@ -72,7 +72,7 @@ impl Transport for NoiseTransport {
         Ok(TcpListener::bind(addr).await?)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
         let (conn, addr) = a.accept().await?;
         let conn = NoiseStream::handshake(conn, self.builder().build_responder()?).await?;
         Ok((conn, addr))

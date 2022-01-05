@@ -12,6 +12,8 @@ pub enum TransportType {
     Tls,
     #[serde(rename = "noise")]
     Noise,
+    #[serde(rename = "quic")]
+    Quic,
 }
 
 impl Default for TransportType {
@@ -79,12 +81,23 @@ pub struct NoiseConfig {
     // TODO: Maybe psk can be added
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct QuicConfig {
+    pub cert: Option<String>,
+    pub private_key: Option<String>,
+    #[serde(default)]
+    pub rtt0: bool,
+    #[serde(default)]
+    pub native_roots: bool,
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
     pub transport_type: TransportType,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
+    pub quic: Option<QuicConfig>,
 }
 
 fn default_transport() -> TransportConfig {
@@ -193,6 +206,20 @@ impl Config {
             }
             TransportType::Noise => {
                 // The check is done in transport
+                Ok(())
+            }
+            TransportType::Quic => {
+                let quic_config = config
+                    .quic
+                    .as_ref()
+                    .ok_or(anyhow!("Missing QUIC configuration"))?;
+                if is_server {
+                    quic_config
+                        .private_key
+                        .as_ref()
+                        .and(quic_config.cert.as_ref())
+                        .ok_or(anyhow!("Missing `private_key` or `cert`"))?;
+                }
                 Ok(())
             }
         }

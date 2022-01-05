@@ -1,0 +1,34 @@
+[client]
+remote_addr = "localhost:2332"
+default_token = "default_token_if_not_specify"
+
+[client.transport]
+type = "quic"
+
+[client.transport.quic]
+cert = "examples/quic/cert.pem"
+
+[client.services.echo]
+type = "udp"
+local_addr = "localhost:8080"
+[client.services.pingpong]
+type = "udp"
+local_addr = "localhost:8081"
+
+[server]
+bind_addr = "0.0.0.0:2332"
+default_token = "default_token_if_not_specify"
+
+[server.transport]
+type = "quic"
+
+[server.transport.quic]
+cert = "examples/quic/cert.pem"
+private_key = "examples/quic/key.pem"
+
+[server.services.echo]
+type = "udp"
+bind_addr = "0.0.0.0:2334"
+[server.services.pingpong]
+type = "udp"
+bind_addr = "0.0.0.0:2335"

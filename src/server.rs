@@ -7,7 +7,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{QuicTransport, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -72,6 +72,15 @@ pub async fn run_server(
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
         }
+        TransportType::Quic => {
+            #[cfg(feature = "quic")]
+                {
+                    let mut server = Server::<QuicTransport>::from(config).await?;
+                    server.run(shutdown_rx, service_rx).await?;
+                }
+            #[cfg(not(feature = "quic"))]
+                crate::helper::feature_not_compile("quic")
+        }
     }
 
     Ok(())
@@ -125,7 +134,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
         mut service_rx: mpsc::Receiver<ServiceChange>,
     ) -> Result<()> {
         // Listen at `server.bind_addr`
-        let l = self
+        let mut l = self
             .transport
             .bind(&self.config.bind_addr)
             .await
@@ -143,7 +152,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
         loop {
             tokio::select! {
                 // Wait for incoming control and data channels
-                ret = self.transport.accept(&l) => {
+                ret = self.transport.accept(&mut l) => {
                     match ret {
                         Err(err) => {
                             // Detects whether it's an IO error

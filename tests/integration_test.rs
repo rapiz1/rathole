@@ -57,6 +57,7 @@ async fn tcp() -> Result<()> {
     test("tests/for_tcp/tcp_transport.toml", Type::Tcp).await?;
     test("tests/for_tcp/tls_transport.toml", Type::Tcp).await?;
     test("tests/for_tcp/noise_transport.toml", Type::Tcp).await?;
+    test("tests/for_tcp/quic_transport.toml", Type::Tcp).await?;
 
     Ok(())
 }
@@ -82,6 +83,7 @@ async fn udp() -> Result<()> {
     test("tests/for_udp/tcp_transport.toml", Type::Udp).await?;
     test("tests/for_udp/tls_transport.toml", Type::Udp).await?;
     test("tests/for_udp/noise_transport.toml", Type::Udp).await?;
+    test("tests/for_udp/quic_transport.toml", Type::Udp).await?;
 
     Ok(())
 }
@@ -143,6 +145,9 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     info!("shutdown the server");
     server_shutdown_tx.send(true)?;
     let _ = tokio::join!(server);
+
+    // Wait for the server connection to be closed (quic)
+    time::sleep(Duration::from_millis(2500)).await;
 
     info!("restart the server");
     let server_shutdown_rx = server_shutdown_tx.subscribe();

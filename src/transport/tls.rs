@@ -64,7 +64,7 @@ impl Transport for TlsTransport {
         Ok((l, t))
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
         let (conn, addr) = a.0.accept().await?;
         let conn = a.1.accept(conn).await?;
 
