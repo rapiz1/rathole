@@ -1,0 +1,15 @@
+FROM rust:1.57-bullseye as builder
+
+WORKDIR /build
+
+COPY . .
+
+RUN cargo build --profile minimal --no-default-features --features client,tls,noise,hot-reload
+
+FROM debian:bullseye AS prod
+
+WORKDIR /opt/rathole
+
+COPY --from=builder /build/target/minimal/rathole .
+
+CMD ["./rathole", "/etc/rathole/config.toml"]
