@@ -27,7 +27,7 @@ rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://g
 
 ## Quickstart
 
-一个全功能的 `rathole` 可以从 [release](https://github.com/rapiz1/rathole/releases) 页面下载。或者 [通过源码编译](docs/build-guide.md) 获取其他平台和裁剪的二进制文件。
+一个全功能的 `rathole` 可以从 [release](https://github.com/rapiz1/rathole/releases) 页面下载。或者 [从源码编译](docs/build-guide.md) 获取其他平台和裁剪的二进制文件。
 
 `rathole` 的使用和 frp 非常类似，如果你有后者的使用经验，那配置对你来说非常简单，区别只是转发服务的配置分离到了服务端和客户端，并且必须要设置 token。
 
@@ -151,7 +151,7 @@ RUST_LOG=error ./rathole config.toml
 
 rathole 的延迟与 [frp](https://github.com/fatedier/frp) 相近，在高并发情况下表现更好，能提供更大的带宽，内存占用更少。
 
-参见 [Benchmark](./docs/benchmark.md)。
+关于测试进行的更多细节，参见单独页面 [Benchmark](./docs/benchmark.md)。
 
 ![http_throughput](./docs/img/http_throughput.svg)
 ![tcp_bitrate](./docs/img/tcp_bitrate.svg)

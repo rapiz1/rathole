@@ -150,7 +150,7 @@ If `RUST_LOG` is not present, the default logging level is `info`.
 
 rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle a more connections, provide larger bandwidth, with less memory usage.
 
-See also [Benchmark](./docs/benchmark.md).
+For more details, see the separate page [Benchmark](./docs/benchmark.md).
 
 ![http_throughput](./docs/img/http_throughput.svg)
 ![tcp_bitrate](./docs/img/tcp_bitrate.svg)
