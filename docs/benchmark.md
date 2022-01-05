@@ -127,6 +127,7 @@ Thus, in terms of latency, rathole and frp are nearly the same. But rathole can 
 
 ![mem](./img/mem-graph.png)
 
+The graph shows the memory usage of frp and rathole when `vegeta attack -duration 30s -rate 1000` is executed.
 rathole uses much less memory than frp.
 
 [Script to benchmark memory](../benches/scripts/mem/mem.sh)

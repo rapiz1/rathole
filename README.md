@@ -7,6 +7,17 @@ A secure, stable and high-performance reverse proxy for NAT traversal, written i
 
 rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.com/inconshreveable/ngrok), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
 
+<!-- TOC -->
+
+- [Features](#features)
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
+  - [Logging](#logging)
+- [Benchmark](#benchmark)
+- [Development Status](#development-status)
+
+<!-- /TOC -->
+
 ## Features
 
 - **High Performance** Much higher throughput can be achieved than frp, and more stable when handling a large volume of connections. See [Benchmark](#Benchmark)
@@ -18,7 +29,7 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
 
 A full-powered `rathole` can be obtained from the [release](https://github.com/rapiz1/rathole/releases) page. Or [build from source](docs/build-guide.md) for other platforms and customizing the binary.
 
-The usage of `rathole` is ver similar to frp. If you have experience with the latter, then the configuration is very easy for you. The only difference is that configuration of a service is splited into the client side and the server side, and a token is mandatory.
+The usage of `rathole` is ver similar to frp. If you have experience with the latter, then the configuration is very easy for you. The only difference is that configuration of a service is split into the client side and the server side, and a token is mandatory.
 
 To use `rathole`, you need a server with a public IP, and a device behind the NAT, where some services that need to be exposed to the Internet. 
 
@@ -30,11 +41,11 @@ Create `server.toml` with the following content and accommodate it to your needs
 ```toml
 # server.toml
 [server]
-bind_addr = "0.0.0.0:2333" # `2333` specifys the port that rathole listens for clients
+bind_addr = "0.0.0.0:2333" # `2333` specifies the port that rathole listens for clients
 
 [server.services.my_nas_ssh]
 token = "use_a_secret_that_only_you_know" # Token that is used to authenticate the client for the service. Change to a arbitrary value.
-bind_addr = "0.0.0.0:5202" # `5202` specifys the port that exposes `my_nas_ssh` to the Internet
+bind_addr = "0.0.0.0:5202" # `5202` specifies the port that exposes `my_nas_ssh` to the Internet
 ```
 
 Then run:
@@ -51,7 +62,7 @@ Create `client.toml` with the following content and accommodate it to your needs
 remote_addr = "myserver.com:2333" # The address of the server. The port must be the same with the port in `server.bind_addr`
 
 [client.services.my_nas_ssh]
-token = "use_a_secret_that_only_you_know" # Must be the same with the server to pass the validataion
+token = "use_a_secret_that_only_you_know" # Must be the same with the server to pass the validation
 local_addr = "127.0.0.1:22" # The address of the service that needs to be forwarded
 ```
 
@@ -67,9 +78,9 @@ So you can `ssh myserver.com:5202` to ssh to your NAS.
 ## Configuration
 `rathole` can automatically determine to run in the server mode or the client mode, according to the content of the configuration file, if only one of `[server]` and `[client]` block is present, like the example in [Quickstart](#Quickstart).
 
-But the `[client]` and `[server]` block can also be put in one file. Then on the server side, run `rathole --server config.toml` and on the client side, run `rathole --client config.toml` to explictly tell `rathole` the running mode.
+But the `[client]` and `[server]` block can also be put in one file. Then on the server side, run `rathole --server config.toml` and on the client side, run `rathole --client config.toml` to explicitly tell `rathole` the running mode.
 
-Before heading to the full configuration specification, it's recommaned to skim [the configuration examples](./examples) to get a feeling of the configuration format.
+Before heading to the full configuration specification, it's recommend to skim [the configuration examples](./examples) to get a feeling of the configuration format.
 
 See [Security](./docs/security.md) for more details about encryption and the `transport` block.
 
@@ -117,7 +128,7 @@ remote_public_key = "key_encoded_in_base64"
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
-token = "whatever" # Necesary if `server.default_token` not set
+token = "whatever" # Necessary if `server.default_token` not set
 bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change. 
 
 [server.services.service2] 
@@ -125,7 +136,7 @@ bind_addr = "0.0.0.1:8082"
 ```
 
 ### Logging
-`rathole`, like many other Rust programs, use environment variables to control the logging level. `info`, `warn`, `error`, `debug`, `trace` are avialable.
+`rathole`, like many other Rust programs, use environment variables to control the logging level. `info`, `warn`, `error`, `debug`, `trace` are available.
 
 ```
 RUST_LOG=error ./rathole config.toml
@@ -136,9 +147,9 @@ If `RUST_LOG` is not present, the default logging level is `info`.
 
 ## Benchmark
 
-rathole has similiar latency to [frp](https://github.com/fatedier/frp), but can handle a more connections, provide larger bandwidth, with less memory usage.
+rathole has similar latency to [frp](https://github.com/fatedier/frp), but can handle a more connections, provide larger bandwidth, with less memory usage.
 
-See also [Benchmark](./docs/benchmark.md).
+For more details, see the separate page [Benchmark](./docs/benchmark.md).
 
 ![http_throughput](./docs/img/http_throughput.svg)
 ![tcp_bitrate](./docs/img/tcp_bitrate.svg)

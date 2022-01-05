@@ -7,6 +7,17 @@
 
 rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://github.com/inconshreveable/ngrok)，可以让 NAT 后的设备上的服务通过具有公网 IP 的服务器暴露在公网上。
 
+<!-- TOC -->
+
+- [Features](#features)
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
+  - [Logging](#logging)
+- [Benchmark](#benchmark)
+- [Development Status](#development-status)
+
+<!-- /TOC -->
+
 ## Features
 
 - **高性能** 具有更高的吞吐量，高并发下更稳定。见[Benchmark](#Benchmark)
@@ -16,7 +27,7 @@ rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://g
 
 ## Quickstart
 
-一个全功能的 `rathole` 可以从 [release](https://github.com/rapiz1/rathole/releases) 页面下载。或者 [通过源码编译](docs/build-guide.md) 获取其他平台和裁剪的二进制文件。
+一个全功能的 `rathole` 可以从 [release](https://github.com/rapiz1/rathole/releases) 页面下载。或者 [从源码编译](docs/build-guide.md) 获取其他平台和裁剪的二进制文件。
 
 `rathole` 的使用和 frp 非常类似，如果你有后者的使用经验，那配置对你来说非常简单，区别只是转发服务的配置分离到了服务端和客户端，并且必须要设置 token。
 
@@ -117,7 +128,7 @@ remote_public_key = "key_encoded_in_base64"
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
-token = "whatever" # Necesary if `server.default_token` not set
+token = "whatever" # Necessary if `server.default_token` not set
 bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change. 
 
 [server.services.service2] 
@@ -127,7 +138,7 @@ bind_addr = "0.0.0.1:8082"
 ### Logging
 `rathole`，像许多其他 Rust 程序一样，使用环境变量来控制日志级别。
 
-支持的 Loggeng Level 有 `info`, `warn`, `error`, `debug`, `trace`
+支持的 Logging Level 有 `info`, `warn`, `error`, `debug`, `trace`
 
 比如将日志级别设置为 `error`:
 ```
@@ -140,7 +151,7 @@ RUST_LOG=error ./rathole config.toml
 
 rathole 的延迟与 [frp](https://github.com/fatedier/frp) 相近，在高并发情况下表现更好，能提供更大的带宽，内存占用更少。
 
-参见 [Benchmark](./docs/benchmark.md)。
+关于测试进行的更多细节，参见单独页面 [Benchmark](./docs/benchmark.md)。
 
 ![http_throughput](./docs/img/http_throughput.svg)
 ![tcp_bitrate](./docs/img/tcp_bitrate.svg)
