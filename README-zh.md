@@ -75,6 +75,8 @@ local_addr = "127.0.0.1:22" # 需要被转发的服务的地址
 
 所以你可以 `ssh myserver.com:5202` 来 ssh 到你的NAS。
 
+[Systemd examples](./examples/systemd) 中提供了一些让 `rathole` 在 Linux 上作为后台服务运行的配置示例。
+
 ## Configuration
 如果只有一个 `[server]` 和 `[client]` 块存在的话，`rathole` 可以根据配置文件的内容自动决定在服务器模式或客户端模式下运行，就像 [Quickstart](#Quickstart) 中的例子。
 
