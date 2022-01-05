@@ -7,6 +7,18 @@ A secure, stable and high-performance reverse proxy for NAT traversal, written i
 
 rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.com/inconshreveable/ngrok), can help to expose the service on the device behind the NAT to the Internet, via a server with a public IP.
 
+<!-- TOC -->
+
+- [rathole](#rathole)
+  - [Features](#features)
+  - [Quickstart](#quickstart)
+  - [Configuration](#configuration)
+    - [Logging](#logging)
+  - [Benchmark](#benchmark)
+  - [Development Status](#development-status)
+
+<!-- /TOC -->
+
 ## Features
 
 - **High Performance** Much higher throughput can be achieved than frp, and more stable when handling a large volume of connections. See [Benchmark](#Benchmark)
