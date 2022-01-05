@@ -163,3 +163,5 @@ For more details, see the separate page [Benchmark](./docs/benchmark.md).
 - [x] UDP support
 - [x] Hot reloading
 - [ ] HTTP APIs for configuration
+
+[Out of Scope](./docs/out-of-scope.md) lists features that are not planned to be implemented and why.

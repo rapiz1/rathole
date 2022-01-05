@@ -165,3 +165,5 @@ rathole 的延迟与 [frp](https://github.com/fatedier/frp) 相近，在高并�
 - [x] 支持UDP
 - [x] 热重载
 - [ ] 用于配置的HTTP APIs
+
+[Out of Scope](./docs/out-of-scope.md) 列举了没有计划开发的特性并说明了原因。
