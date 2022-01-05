@@ -75,6 +75,8 @@ Then run:
 
 So you can `ssh myserver.com:5202` to ssh to your NAS.
 
+4. If you want to use rathole as service please refer to this [docs](https://github.com/rapiz1/rathole/tree/main/examples/systemd) . For windows we recommend NSSM using the guide from [here](https://www.paddingleft.com/2018/05/29/install-nodejs-program-as-windows-service-by-nssm/).
+
 ## Configuration
 `rathole` can automatically determine to run in the server mode or the client mode, according to the content of the configuration file, if only one of `[server]` and `[client]` block is present, like the example in [Quickstart](#Quickstart).
 
