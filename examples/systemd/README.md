@@ -6,7 +6,7 @@ the current directory.
 Here we will try to install server version. Same will apply for client etc.
 
 Before procedding we need to have configuration ready. For that please refer to readme file. Also, @ in filename such as
-rathole@.service carries [special meaning](https://superuser.com/questions/393423/the-symbol-and-systemctl-and-vsftpd) to enable multiple instances of ratholec. If you are only hosting  one instance then
+`rathole@.service` carries [special meaning](https://superuser.com/questions/393423/the-symbol-and-systemctl-and-vsftpd) to enable multiple instances of ratholec. If you are only hosting  one instance then
 feel free to use systemd config file that doesn't use @. Also, whenever we mention systemd config it means file that has *.service extension.
 
 Here is simple instruction to install rathole server.
