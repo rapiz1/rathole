@@ -1,49 +1,35 @@
-## Systemd Configuration
+## Systemd Unit Examples
 
-We provide various systemd examples to make the management of rathole easy. You can find out various services file in
-the current directory.
+The directory lists some systemd unit files for example, which can be used to run `rathole` as a service on Linux.
 
-Here we will try to install server version. Same will apply for client etc.
+[The `@` symbol in name of unit files](https://superuser.com/questions/393423/the-symbol-and-systemctl-and-vsftpd) such as
+`rathole@.service` facilitates the management of multiple instances of `rathole`.
 
-Before procedding we need to have configuration ready. For that please refer to readme file. Also, @ in filename such as
-`rathole@.service` carries [special meaning](https://superuser.com/questions/393423/the-symbol-and-systemctl-and-vsftpd) to enable multiple instances of rathole. If you are only hosting  one instance then
-feel free to use systemd config file that doesn't use @. Also, whenever we mention systemd config it means file that has *.service extension.
+For the naming of the example, `ratholes` stands for `rathole --server`, and `ratholec` stands for `rathole --client`, `rathole` is just `rathole`.
 
-Here is simple instruction to install rathole server.
+Assuming that `rathole` is installed in `/usr/local/bin/rathole`, and the configuration file is in `/etc/rathole/app1.toml`, the following steps shows how to run an instance of `rathole --server`.
 
-1. Create a service file:
+1. Create a service file.
 
 ```bash
-wget https://github.com/rapiz1/rathole/blob/main/examples/systemd/ratholes@.service # download the file
-sudo cp rathole@.service /lib/systemd/system/
+sudo cp ratholes@.service /etc/systemd/system/
 ```
 
-2. Create the rathole configuration file we shall call it app1.toml.
+2. Create the configuration file `app1.toml`.
 
-```
+```bash
 sudo mkdir -p /etc/rathole
-# Now create rathole config file called app1 inside /etc/rathole
+# And create the configuration file named `app1.toml` inside /etc/rathole
 ```
 
-If you don't want to use /etc/rathole you can tweak the systemd config file
-
-```
-ExecStart=/usr/bin/rathole -s /etc/rathole/%i.toml
-```
-
-_Note_: Don't replace `%i` becase it will be replaced by app1, app2 when we do `systemctl start rathole@app1` in coming
-step.
-
-3. Enable to service so it works automatically when computer is rebooted.
+3. Enable and start the service
 
 ```bash
-sudo systemctl enable ratholes@app1
+sudo systemctl daemon-reload # Make sure systemd find the new unit
+sudo systemctl enable ratholes@app1 --now
 ```
 
-4. Start the service
+And if there's another configuration named `app2.toml` in `/etc/rathole`, then
+`sudo systemctl enable ratholes@app2 --now` can start an instance for that configuration.
 
-```bash
-sudo systemctl enable ratholes@app1
-```
-
-You can use app1, app2 or whatever you like but make sure config file exists.
+The same applies to `rathole --client` and `rathole`.
