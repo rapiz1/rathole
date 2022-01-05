@@ -128,7 +128,7 @@ remote_public_key = "key_encoded_in_base64"
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
-token = "whatever" # Necesary if `server.default_token` not set
+token = "whatever" # Necessary if `server.default_token` not set
 bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change. 
 
 [server.services.service2] 
@@ -138,7 +138,7 @@ bind_addr = "0.0.0.1:8082"
 ### Logging
 `rathole`，像许多其他 Rust 程序一样，使用环境变量来控制日志级别。
 
-支持的 Loggeng Level 有 `info`, `warn`, `error`, `debug`, `trace`
+支持的 Logging Level 有 `info`, `warn`, `error`, `debug`, `trace`
 
 比如将日志级别设置为 `error`:
 ```
