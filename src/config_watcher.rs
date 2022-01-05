@@ -190,34 +190,40 @@ async fn config_watcher(
 
 fn calculate_events(old: &Config, new: &Config) -> Vec<ConfigChange> {
     if old == new {
-        vec![]
-    } else if old.server != new.server {
+        return vec![];
+    }
+
+    let mut ret = vec![];
+
+    if old.server != new.server {
         if old.server.is_some() != new.server.is_some() {
-            vec![ConfigChange::General(Box::new(new.clone()))]
+            return vec![ConfigChange::General(Box::new(new.clone()))];
         } else {
             match calculate_instance_config_events(
                 old.server.as_ref().unwrap(),
                 new.server.as_ref().unwrap(),
             ) {
-                Some(v) => v,
-                None => vec![ConfigChange::General(Box::new(new.clone()))],
+                Some(mut v) => ret.append(&mut v),
+                None => return vec![ConfigChange::General(Box::new(new.clone()))],
             }
         }
-    } else if old.client != new.client {
+    }
+
+    if old.client != new.client {
         if old.client.is_some() != new.client.is_some() {
-            vec![ConfigChange::General(Box::new(new.clone()))]
+            return vec![ConfigChange::General(Box::new(new.clone()))];
         } else {
             match calculate_instance_config_events(
                 old.client.as_ref().unwrap(),
                 new.client.as_ref().unwrap(),
             ) {
-                Some(v) => v,
-                None => vec![ConfigChange::General(Box::new(new.clone()))],
+                Some(mut v) => ret.append(&mut v),
+                None => return vec![ConfigChange::General(Box::new(new.clone()))],
             }
         }
-    } else {
-        vec![]
     }
+
+    ret
 }
 
 // None indicates a General change needed
@@ -335,8 +341,31 @@ mod test {
                     client: None,
                 },
             },
+            Test {
+                old: Config {
+                    server: Some(ServerConfig {
+                        services: collection!(String::from("foo1") => ServerServiceConfig::with_name("foo1"), String::from("foo2") => ServerServiceConfig::with_name("foo2")),
+                        ..Default::default()
+                    }),
+                    client: Some(ClientConfig {
+                        services: collection!(String::from("foo1") => ClientServiceConfig::with_name("foo1"), String::from("foo2") => ClientServiceConfig::with_name("foo2")),
+                        ..Default::default()
+                    }),
+                },
+                new: Config {
+                    server: Some(ServerConfig {
+                        services: collection!(String::from("bar1") => ServerServiceConfig::with_name("bar1"), String::from("foo2") => ServerServiceConfig::with_name("foo2")),
+                        ..Default::default()
+                    }),
+                    client: Some(ClientConfig {
+                        services: collection!(String::from("bar1") => ClientServiceConfig::with_name("bar1"), String::from("bar2") => ClientServiceConfig::with_name("bar2")),
+                        ..Default::default()
+                    }),
+                },
+            },
         ];
-        let expected = [
+
+        let mut expected = [
             vec![ConfigChange::General(Box::new(tests[0].new.clone()))],
             vec![ConfigChange::General(Box::new(tests[1].new.clone()))],
             vec![ConfigChange::ServiceChange(ServiceChange::ServerAdd(
@@ -345,12 +374,42 @@ mod test {
             vec![ConfigChange::ServiceChange(ServiceChange::ServerDelete(
                 String::from("foo"),
             ))],
+            vec![
+                ConfigChange::ServiceChange(ServiceChange::ServerDelete(String::from("foo1"))),
+                ConfigChange::ServiceChange(ServiceChange::ServerAdd(
+                    tests[4].new.server.as_ref().unwrap().services["bar1"].clone(),
+                )),
+                ConfigChange::ServiceChange(ServiceChange::ClientDelete(String::from("foo1"))),
+                ConfigChange::ServiceChange(ServiceChange::ClientDelete(String::from("foo2"))),
+                ConfigChange::ServiceChange(ServiceChange::ClientAdd(
+                    tests[4].new.client.as_ref().unwrap().services["bar1"].clone(),
+                )),
+                ConfigChange::ServiceChange(ServiceChange::ClientAdd(
+                    tests[4].new.client.as_ref().unwrap().services["bar2"].clone(),
+                )),
+            ],
         ];
 
         assert_eq!(tests.len(), expected.len());
 
         for i in 0..tests.len() {
-            let actual = calculate_events(&tests[i].old, &tests[i].new);
+            let mut actual = calculate_events(&tests[i].old, &tests[i].new);
+
+            let get_key = |x: &ConfigChange| -> String {
+                match x {
+                    ConfigChange::General(_) => String::from("g"),
+                    ConfigChange::ServiceChange(sc) => match sc {
+                        ServiceChange::ClientAdd(c) => "c_add_".to_owned() + &c.name,
+                        ServiceChange::ClientDelete(s) => "c_del_".to_owned() + s,
+                        ServiceChange::ServerAdd(c) => "s_add_".to_owned() + &c.name,
+                        ServiceChange::ServerDelete(s) => "s_del_".to_owned() + s,
+                    },
+                }
+            };
+
+            actual.sort_by_cached_key(get_key);
+            expected[i].sort_by_cached_key(get_key);
+
             assert_eq!(actual, expected[i]);
         }
     }

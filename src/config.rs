@@ -20,7 +20,7 @@ impl Default for TransportType {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
 pub struct ClientServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
     pub service_type: ServiceType,
@@ -28,6 +28,15 @@ pub struct ClientServiceConfig {
     pub name: String,
     pub local_addr: String,
     pub token: Option<String>,
+}
+
+impl ClientServiceConfig {
+    pub fn with_name(name: &str) -> ClientServiceConfig {
+        ClientServiceConfig {
+            name: name.to_string(),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
@@ -58,6 +67,14 @@ pub struct ServerServiceConfig {
     pub token: Option<String>,
 }
 
+impl ServerServiceConfig {
+    pub fn with_name(name: &str) -> ServerServiceConfig {
+        ServerServiceConfig {
+            name: name.to_string(),
+            ..Default::default()
+        }
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct TlsConfig {
     pub hostname: Option<String>,
