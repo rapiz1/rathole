@@ -25,6 +25,15 @@ jobs:
             target: aarch64-unknown-linux-musl
             exe: rathole
           - os: ubuntu-latest
+            target: arm-unknown-linux-musleabi
+            exe: rathole
+          - os: ubuntu-latest
+            target: arm-unknown-linux-musleabihf
+            exe: rathole
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-musleabihf
+            exe: rathole
+          - os: ubuntu-latest
             target: mips-unknown-linux-musl
             exe: rathole
           - os: ubuntu-latest
