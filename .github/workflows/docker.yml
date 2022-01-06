@@ -2,7 +2,7 @@ name: Docker
 
 on:
   release:
-    type: released
+    type: [created, released]
 
 jobs:
   build-and-push-docker-image:
