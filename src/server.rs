@@ -14,10 +14,9 @@ use backoff::ExponentialBackoff;
 
 use rand::RngCore;
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::io::{self, copy_bidirectional, AsyncWriteExt};
+use tokio::io::{self, copy_bidirectional, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::time;
@@ -618,10 +617,10 @@ async fn run_udp_connection_pool<T: Transport>(
             },
 
             // Forward outbound traffic from the client to the visitor
-            t = UdpTraffic::read(&mut conn) => {
-                let t = t?;
+            hdr_len = conn.read_u16() => {
+                let t = UdpTraffic::read(&mut conn, hdr_len?).await?;
                 l.send_to(&t.data, t.from).await?;
-            },
+            }
 
             _ = shutdown_rx.recv() => {
                 break;
