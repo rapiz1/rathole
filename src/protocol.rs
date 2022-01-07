@@ -11,7 +11,7 @@ use tracing::trace;
 type ProtocolVersion = u8;
 const PROTO_V0: u8 = 0u8;
 
-pub const CURRENT_PROTO_VRESION: ProtocolVersion = PROTO_V0;
+pub const CURRENT_PROTO_VERSION: ProtocolVersion = PROTO_V0;
 
 pub type Digest = [u8; HASH_WIDTH_IN_BYTES];
 
@@ -151,7 +151,7 @@ impl PacketLength {
     pub fn new() -> PacketLength {
         let username = "default";
         let d = digest(username.as_bytes());
-        let hello = bincode::serialized_size(&Hello::ControlChannelHello(CURRENT_PROTO_VRESION, d))
+        let hello = bincode::serialized_size(&Hello::ControlChannelHello(CURRENT_PROTO_VERSION, d))
             .unwrap() as usize;
         let c_cmd =
             bincode::serialized_size(&ControlChannelCmd::CreateDataChannel).unwrap() as usize;

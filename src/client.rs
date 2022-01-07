@@ -4,7 +4,7 @@ use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
-    DataChannelCmd, UdpTraffic, CURRENT_PROTO_VRESION, HASH_WIDTH_IN_BYTES,
+    DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
 use crate::transport::{TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
@@ -177,7 +177,7 @@ async fn do_data_channel_handshake<T: Transport>(
 
     // Send nonce
     let v: &[u8; HASH_WIDTH_IN_BYTES] = args.session_key[..].try_into().unwrap();
-    let hello = Hello::DataChannelHello(CURRENT_PROTO_VRESION, v.to_owned());
+    let hello = Hello::DataChannelHello(CURRENT_PROTO_VERSION, v.to_owned());
     conn.write_all(&bincode::serialize(&hello).unwrap()).await?;
 
     Ok(conn)
@@ -209,12 +209,12 @@ async fn run_data_channel_for_tcp<T: Transport>(
 
     let mut local = TcpStream::connect(local_addr)
         .await
-        .with_context(|| "Failed to conenct to local_addr")?;
+        .with_context(|| "Failed to connect to local_addr")?;
     let _ = copy_bidirectional(&mut conn, &mut local).await;
     Ok(())
 }
 
-// Things get a little tricker when it gets to UDP because it's connectionless.
+// Things get a little tricker when it gets to UDP because it's connection-less.
 // A UdpPortMap must be maintained for recent seen incoming address, giving them
 // each a local port, which is associated with a socket. So just the sender
 // to the socket will work fine for the map's value.
@@ -377,7 +377,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
         // Send hello
         debug!("Sending hello");
         let hello_send =
-            Hello::ControlChannelHello(CURRENT_PROTO_VRESION, self.digest[..].try_into().unwrap());
+            Hello::ControlChannelHello(CURRENT_PROTO_VERSION, self.digest[..].try_into().unwrap());
         conn.write_all(&bincode::serialize(&hello_send).unwrap())
             .await?;
 
