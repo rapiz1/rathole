@@ -317,7 +317,7 @@ async fn do_data_channel_handshake<T: 'static + Transport>(
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
     nonce: Nonce,
 ) -> Result<()> {
-    info!("New control channel incoming");
+    debug!("New data channel incoming");
 
     // Validate
     let control_channels_guard = control_channels.read().await;
