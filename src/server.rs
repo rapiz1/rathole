@@ -244,7 +244,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
 
     // Send hello
     let hello_send = Hello::ControlChannelHello(
-        protocol::CURRENT_PROTO_VRESION,
+        protocol::CURRENT_PROTO_VERSION,
         nonce.clone().try_into().unwrap(),
     );
     conn.write_all(&bincode::serialize(&hello_send).unwrap())

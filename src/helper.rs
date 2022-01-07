@@ -11,7 +11,7 @@ use tokio::net::{TcpStream, ToSocketAddrs, UdpSocket};
 use tracing::error;
 
 // Tokio hesitates to expose this option...So we have to do it on our own :(
-// The good news is that using socket2 it can be easily done, without losing portablity.
+// The good news is that using socket2 it can be easily done, without losing portability.
 // See https://github.com/tokio-rs/tokio/issues/3082
 pub fn try_set_tcp_keepalive(conn: &TcpStream) -> Result<()> {
     let s = SockRef::from(conn);
@@ -45,6 +45,7 @@ pub async fn udp_connect<A: ToSocketAddrs>(addr: A) -> Result<UdpSocket> {
     Ok(s)
 }
 
+// FIXME: These functions are for the load balance for UDP. But not used for now.
 #[allow(dead_code)]
 pub fn hash_socket_addr(a: &SocketAddr) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -52,7 +53,7 @@ pub fn hash_socket_addr(a: &SocketAddr) -> u64 {
     hasher.finish()
 }
 
-// Wait for the stablization of https://doc.rust-lang.org/std/primitive.i64.html#method.log2
+// Wait for the stabilization of https://doc.rust-lang.org/std/primitive.i64.html#method.log2
 #[allow(dead_code)]
 fn log2_floor(x: usize) -> u8 {
     (x as f64).log2().floor() as u8
