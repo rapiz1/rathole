@@ -155,7 +155,7 @@ rathole 的延迟与 [frp](https://github.com/fatedier/frp) 相近，在高并�
 
 关于测试进行的更多细节，参见单独页面 [Benchmark](./docs/benchmark.md)。
 
-**但是，不要从这里得出结论，`rathole` 能让内网转发出来的服务快上数倍。** Benchmark 是在本地回环上进行的，其结果说明了任务受 CPU 限制时的结果。当用户的网络不是瓶颈时，用户能得到很大的提升。但是，对很多用户来说并不是这样。在这种情况下，`rathole` 能带来的主要好处是更少的资源占用，带宽和延迟不一定有显著的改善。
+**但是，不要从这里得出结论，`rathole` 能让内网转发出来的服务快上数倍。** Benchmark 是在本地回环上进行的，其结果说明了任务受 CPU 限制时的结果。当用户的网络不是瓶颈时，用户能得到很大的提升。但是，对很多用户来说并不是这样。在这种情况下，`rathole` 能带来的主要好处是更少的资源占用，而带宽和延迟不一定有显著的改善。
 
 ![http_throughput](./docs/img/http_throughput.svg)
 ![tcp_bitrate](./docs/img/tcp_bitrate.svg)
