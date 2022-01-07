@@ -162,12 +162,12 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                         }
                         Ok((conn, addr)) => {
                             backoff.reset();
-                            debug!("Incomming connection from {}", addr);
+                            debug!("Incoming connection from {}", addr);
 
                             let services = self.services.clone();
                             let control_channels = self.control_channels.clone();
                             tokio::spawn(async move {
-                                if let Err(err) = handle_connection(conn, addr, services, control_channels).await.with_context(||"Failed to handle a connection to `server.bind_addr`") {
+                                if let Err(err) = handle_connection(conn, services, control_channels).await {
                                     error!("{:?}", err);
                                 }
                             }.instrument(info_span!("handle_connection", %addr)));
@@ -215,7 +215,6 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
 // Handle connections to `server.bind_addr`
 async fn handle_connection<T: 'static + Transport>(
     mut conn: T::Stream,
-    addr: SocketAddr,
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
 ) -> Result<()> {
@@ -223,8 +222,7 @@ async fn handle_connection<T: 'static + Transport>(
     let hello = read_hello(&mut conn).await?;
     match hello {
         ControlChannelHello(_, service_digest) => {
-            do_control_channel_handshake(conn, addr, services, control_channels, service_digest)
-                .await?;
+            do_control_channel_handshake(conn, services, control_channels, service_digest).await?;
         }
         DataChannelHello(_, nonce) => {
             do_data_channel_handshake(conn, control_channels, nonce).await?;
@@ -235,12 +233,11 @@ async fn handle_connection<T: 'static + Transport>(
 
 async fn do_control_channel_handshake<T: 'static + Transport>(
     mut conn: T::Stream,
-    addr: SocketAddr,
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
     service_digest: ServiceDigest,
 ) -> Result<()> {
-    info!("New control channel incomming from {}", addr);
+    info!("New control channel incoming");
 
     // Generate a nonce
     let mut nonce = vec![0u8; HASH_WIDTH_IN_BYTES];
@@ -321,6 +318,8 @@ async fn do_data_channel_handshake<T: 'static + Transport>(
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
     nonce: Nonce,
 ) -> Result<()> {
+    info!("New control channel incoming");
+
     // Validate
     let control_channels_guard = control_channels.read().await;
     match control_channels_guard.get2(&nonce) {
@@ -358,27 +357,6 @@ where
         // Store data channel creation requests
         let (data_ch_req_tx, data_ch_req_rx) = mpsc::unbounded_channel();
 
-        match service.service_type {
-            ServiceType::Tcp => tokio::spawn(
-                run_tcp_connection_pool::<T>(
-                    service.bind_addr.clone(),
-                    data_ch_rx,
-                    data_ch_req_tx.clone(),
-                    shutdown_tx.subscribe(),
-                )
-                .instrument(Span::current()),
-            ),
-            ServiceType::Udp => tokio::spawn(
-                run_udp_connection_pool::<T>(
-                    service.bind_addr.clone(),
-                    data_ch_rx,
-                    data_ch_req_tx.clone(),
-                    shutdown_tx.subscribe(),
-                )
-                .instrument(Span::current()),
-            ),
-        };
-
         // Cache some data channels for later use
         let pool_size = match service.service_type {
             ServiceType::Tcp => TCP_POOL_SIZE,
@@ -390,6 +368,43 @@ where
                 error!("Failed to request data channel {}", e);
             };
         }
+
+        let shutdown_rx_clone = shutdown_tx.subscribe();
+        let bind_addr = service.bind_addr.clone();
+        match service.service_type {
+            ServiceType::Tcp => tokio::spawn(
+                async move {
+                    if let Err(e) = run_tcp_connection_pool::<T>(
+                        bind_addr,
+                        data_ch_rx,
+                        data_ch_req_tx,
+                        shutdown_rx_clone,
+                    )
+                    .await
+                    .with_context(|| "Failed to run TCP connection pool")
+                    {
+                        error!("{:?}", e);
+                    }
+                }
+                .instrument(Span::current()),
+            ),
+            ServiceType::Udp => tokio::spawn(
+                async move {
+                    if let Err(e) = run_udp_connection_pool::<T>(
+                        bind_addr,
+                        data_ch_rx,
+                        data_ch_req_tx,
+                        shutdown_rx_clone,
+                    )
+                    .await
+                    .with_context(|| "Failed to run TCP connection pool")
+                    {
+                        error!("{:?}", e);
+                    }
+                }
+                .instrument(Span::current()),
+            ),
+        };
 
         // Create the control channel
         let ch = ControlChannel::<T> {
@@ -568,7 +583,16 @@ async fn run_udp_connection_pool<T: Transport>(
     // TODO: Load balance
 
     let l: UdpSocket = backoff::future::retry(listen_backoff(), || async {
-        Ok(UdpSocket::bind(&bind_addr).await?)
+        Ok(match UdpSocket::bind(&bind_addr)
+            .await
+            .with_context(|| "Failed to listen for the service")
+        {
+            Err(e) => {
+                error!("{:?}", e);
+                Err(e)
+            }
+            v => v,
+        }?)
     })
     .await
     .with_context(|| "Failed to listen for the service")?;
@@ -604,6 +628,8 @@ async fn run_udp_connection_pool<T: Transport>(
             }
         }
     }
+
+    debug!("UDP pool dropped");
 
     Ok(())
 }

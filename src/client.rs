@@ -17,7 +17,7 @@ use tokio::io::{self, copy_bidirectional, AsyncWriteExt};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 use tokio::time::{self, Duration};
-use tracing::{debug, error, info, instrument, warn, Instrument, Span};
+use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
@@ -236,8 +236,13 @@ async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &st
     // Keep sending items from the outbound channel to the server
     tokio::spawn(async move {
         while let Some(t) = outbound_rx.recv().await {
-            debug!("outbound {:?}", t);
-            if t.write(&mut wr).await.is_err() {
+            trace!("outbound {:?}", t);
+            if let Err(e) = t
+                .write(&mut wr)
+                .await
+                .with_context(|| "Failed to forward UDP traffic to the server")
+            {
+                debug!("{:?}", e);
                 break;
             }
         }
@@ -245,7 +250,10 @@ async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &st
 
     loop {
         // Read a packet from the server
-        let packet = UdpTraffic::read(&mut rd).await?;
+        let hdr_len = rd.read_u16().await?;
+        let packet = UdpTraffic::read(&mut rd, hdr_len)
+            .await
+            .with_context(|| "Failed to read UDPTraffic from the server")?;
         let m = port_map.read().await;
 
         if m.get(&packet.from).is_none() {
@@ -290,6 +298,7 @@ async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &st
 }
 
 // Run a UdpSocket for the visitor `from`
+#[instrument(skip_all, fields(from))]
 async fn run_udp_forwarder(
     s: UdpSocket,
     mut inbound_rx: mpsc::Receiver<Bytes>,
@@ -297,6 +306,7 @@ async fn run_udp_forwarder(
     from: SocketAddr,
     port_map: UdpPortMap,
 ) -> Result<()> {
+    debug!("Forwarder created");
     let mut buf = BytesMut::new();
     buf.resize(UDP_BUFFER_SIZE, 0);
 
@@ -336,6 +346,7 @@ async fn run_udp_forwarder(
     let mut port_map = port_map.write().await;
     port_map.remove(&from);
 
+    debug!("Forwarder dropped");
     Ok(())
 }
 
