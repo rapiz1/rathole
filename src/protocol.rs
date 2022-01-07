@@ -79,7 +79,7 @@ impl UdpTraffic {
         let v = bincode::serialize(&hdr).unwrap();
 
         trace!("Write {:?} of length {}", hdr, v.len());
-        writer.write_u16(v.len() as u16).await?;
+        writer.write_u8(v.len() as u8).await?;
         writer.write_all(&v).await?;
 
         writer.write_all(&self.data).await?;
@@ -101,7 +101,7 @@ impl UdpTraffic {
         let v = bincode::serialize(&hdr).unwrap();
 
         trace!("Write {:?} of length {}", hdr, v.len());
-        writer.write_u16(v.len() as u16).await?;
+        writer.write_u8(v.len() as u8).await?;
         writer.write_all(&v).await?;
 
         writer.write_all(data).await?;
@@ -109,7 +109,7 @@ impl UdpTraffic {
         Ok(())
     }
 
-    pub async fn read<T: AsyncRead + Unpin>(reader: &mut T, hdr_len: u16) -> Result<UdpTraffic> {
+    pub async fn read<T: AsyncRead + Unpin>(reader: &mut T, hdr_len: u8) -> Result<UdpTraffic> {
         let mut buf = Vec::new();
         buf.resize(hdr_len as usize, 0);
         reader

@@ -617,7 +617,7 @@ async fn run_udp_connection_pool<T: Transport>(
             },
 
             // Forward outbound traffic from the client to the visitor
-            hdr_len = conn.read_u16() => {
+            hdr_len = conn.read_u8() => {
                 let t = UdpTraffic::read(&mut conn, hdr_len?).await?;
                 l.send_to(&t.data, t.from).await?;
             }

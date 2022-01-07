@@ -250,7 +250,7 @@ async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &st
 
     loop {
         // Read a packet from the server
-        let hdr_len = rd.read_u16().await?;
+        let hdr_len = rd.read_u8().await?;
         let packet = UdpTraffic::read(&mut rd, hdr_len)
             .await
             .with_context(|| "Failed to read UDPTraffic from the server")?;
