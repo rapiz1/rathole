@@ -166,13 +166,19 @@ async fn do_data_channel_handshake<T: Transport>(
     };
 
     // Connect to remote_addr
-    let mut conn: T::Stream = backoff::future::retry(backoff, || async {
-        Ok(args
-            .connector
-            .connect(&args.remote_addr)
-            .await
-            .with_context(|| "Failed to connect to remote_addr")?)
-    })
+    let mut conn: T::Stream = backoff::future::retry_notify(
+        backoff,
+        || async {
+            Ok(args
+                .connector
+                .connect(&args.remote_addr)
+                .await
+                .with_context(|| "Failed to connect to remote_addr")?)
+        },
+        |e, _| {
+            error!("{:?}", e);
+        },
+    )
     .await?;
 
     // Send nonce
