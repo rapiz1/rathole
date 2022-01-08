@@ -79,7 +79,7 @@ impl Transport for TlsTransport {
         Ok(l)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
         self.tcp
             .accept(a)
             .await
@@ -104,5 +104,8 @@ impl Transport for TlsTransport {
                 conn,
             )
             .await?)
+    }
+
+    async fn close(&self, _: Self::Acceptor) {
     }
 }

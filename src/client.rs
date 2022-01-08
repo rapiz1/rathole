@@ -22,6 +22,8 @@ use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
+#[cfg(feature = "quic")]
+use crate::transport::QuicTransport;
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
 
@@ -62,6 +64,15 @@ pub async fn run_client(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Quic => {
+            #[cfg(feature = "quic")]
+            {
+                let mut client = Client::<QuicTransport>::from(config).await?;
+                client.run(shutdown_rx, service_rx).await
+            }
+            #[cfg(not(feature = "quic"))]
+            crate::helper::feature_not_compile("quic")
         }
     }
 }

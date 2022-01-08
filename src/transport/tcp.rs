@@ -31,7 +31,7 @@ impl Transport for TcpTransport {
         Ok(TcpListener::bind(addr).await?)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
         let (s, addr) = a.accept().await?;
         self.socket_opts.apply(&s);
         Ok((s, addr))
@@ -45,5 +45,8 @@ impl Transport for TcpTransport {
         let s = TcpStream::connect(addr).await?;
         self.socket_opts.apply(&s);
         Ok(s)
+    }
+
+    async fn close(&self, _: Self::Acceptor) {
     }
 }

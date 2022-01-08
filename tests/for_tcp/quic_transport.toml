@@ -1,0 +1,29 @@
+[client]
+remote_addr = "127.0.0.1:2333" 
+default_token = "default_token_if_not_specify" 
+
+[client.transport]
+type = "quic"
+[client.transport.quic]
+trusted_root = "examples/quic/test_ca.pem"
+hostname = "testserver"
+
+[client.services.echo] 
+local_addr = "127.0.0.1:8080" 
+[client.services.pingpong] 
+local_addr = "127.0.0.1:8081" 
+
+[server]
+bind_addr = "0.0.0.0:2333" 
+default_token = "default_token_if_not_specify" 
+
+[server.transport]
+type = "quic"
+[server.transport.quic]
+pkcs12 = "examples/quic/test_server.pfx"
+pkcs12_password = "1234"
+
+[server.services.echo] 
+bind_addr = "0.0.0.0:2334" 
+[server.services.pingpong] 
+bind_addr = "0.0.0.0:2335" 

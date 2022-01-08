@@ -26,6 +26,8 @@ use tracing::{debug, error, info, info_span, instrument, warn, Instrument, Span}
 use crate::transport::NoiseTransport;
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
+#[cfg(feature = "quic")]
+use crate::transport::QuicTransport;
 
 type ServiceDigest = protocol::Digest; // SHA256 of a service name
 type Nonce = protocol::Digest; // Also called `session_key`
@@ -70,6 +72,15 @@ pub async fn run_server(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Quic => {
+            #[cfg(feature = "quic")]
+            {
+                let mut server = Server::<QuicTransport>::from(config).await?;
+                server.run(shutdown_rx, service_rx).await?;
+            }
+            #[cfg(not(feature = "tls"))]
+            crate::helper::feature_not_compile("tls")
         }
     }
 
@@ -122,7 +133,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
         mut service_rx: mpsc::Receiver<ServiceChange>,
     ) -> Result<()> {
         // Listen at `server.bind_addr`
-        let l = self
+        let mut l = self
             .transport
             .bind(&self.config.bind_addr)
             .await
@@ -140,7 +151,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
         loop {
             tokio::select! {
                 // Wait for incoming control and data channels
-                ret = self.transport.accept(&l) => {
+                ret = self.transport.accept(&mut l) => {
                     match ret {
                         Err(err) => {
                             // Detects whether it's an IO error
@@ -189,7 +200,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                 },
                 // Wait for the shutdown signal
                 _ = shutdown_rx.recv() => {
-                    info!("Shuting down gracefully...");
+                    info!("Shutting down gracefully...");
                     break;
                 },
                 e = service_rx.recv() => {
@@ -200,8 +211,9 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
             }
         }
 
+        // Some transports uses async functions for closing gracefully (QUIC)
+        self.transport.close(l).await;
         info!("Shutdown");
-
         Ok(())
     }
 
