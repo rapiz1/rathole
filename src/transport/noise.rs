@@ -72,18 +72,27 @@ impl Transport for NoiseTransport {
     }
 
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
-        let (conn, addr) = a.accept().await?;
+        let (conn, addr) = a
+            .accept()
+            .await
+            .with_context(|| "Failed to accept TCP connection")?;
         set_tcp_keepalive(&conn);
 
-        let conn = NoiseStream::handshake(conn, self.builder().build_responder()?).await?;
+        let conn = NoiseStream::handshake(conn, self.builder().build_responder()?)
+            .await
+            .with_context(|| "Failed to do noise handshake")?;
         Ok((conn, addr))
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
-        let conn = TcpStream::connect(addr).await?;
+        let conn = TcpStream::connect(addr)
+            .await
+            .with_context(|| "Failed to connect TCP socket")?;
         set_tcp_keepalive(&conn);
 
-        let conn = NoiseStream::handshake(conn, self.builder().build_initiator()?).await?;
+        let conn = NoiseStream::handshake(conn, self.builder().build_initiator()?)
+            .await
+            .with_context(|| "Failed to do noise handshake")?;
         return Ok(conn);
     }
 }
