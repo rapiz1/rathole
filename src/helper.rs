@@ -15,7 +15,7 @@ use tracing::error;
 // See https://github.com/tokio-rs/tokio/issues/3082
 pub fn try_set_tcp_keepalive(conn: &TcpStream) -> Result<()> {
     let s = SockRef::from(conn);
-    let keepalive = TcpKeepalive::new().with_time(Duration::from_secs(60));
+    let keepalive = TcpKeepalive::new().with_time(Duration::from_secs(30));
     s.set_tcp_keepalive(&keepalive)
         .with_context(|| "Failed to set keepalive")
 }
