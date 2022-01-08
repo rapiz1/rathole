@@ -187,6 +187,8 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
             }
         }
 
+        info!("Shutdown");
+
         Ok(())
     }
 
@@ -468,7 +470,7 @@ impl<T: Transport> ControlChannel<T> {
             }
         }
 
-        info!("Control channel shuting down");
+        info!("Control channel shutdown");
 
         Ok(())
     }
@@ -527,10 +529,9 @@ fn tcp_listen_and_send(
                         }
                         Ok((incoming, addr)) => {
                             // For every visitor, request to create a data channel
-                            if let Err(e) = data_ch_req_tx.send(true).with_context(|| "Failed to send data chan create request") {
+                            if data_ch_req_tx.send(true).with_context(|| "Failed to send data chan create request").is_err() {
                                 // An error indicates the control channel is broken
                                 // So break the loop
-                                error!("{:?}", e);
                                 break;
                             }
 
@@ -548,6 +549,8 @@ fn tcp_listen_and_send(
                 }
             }
         }
+
+        info!("TCPListener shutdown");
     }.instrument(Span::current()));
 
     rx
@@ -573,6 +576,8 @@ async fn run_tcp_connection_pool<T: Transport>(
             break;
         }
     }
+
+    info!("Shutdown");
     Ok(())
 }
 

@@ -165,6 +165,7 @@ async fn do_data_channel_handshake<T: Transport>(
         ..Default::default()
     };
 
+    // FIXME: Respect control channel shutdown here
     // Connect to remote_addr
     let mut conn: T::Stream = backoff::future::retry_notify(
         backoff,
@@ -447,12 +448,12 @@ impl<T: 'static + Transport> ControlChannel<T> {
                     }
                 },
                 _ = &mut self.shutdown_rx => {
-                    info!( "Control channel shutting down...");
                     break;
                 }
             }
         }
 
+        info!("Control channel shutdown");
         Ok(())
     }
 }
