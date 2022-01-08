@@ -14,10 +14,6 @@ But that doesn't mean it's not useful for other purposes. In the future, more co
 
   `rathole` doesn't interference with the application layer traffic. A right place for this kind of stuff is the web server, and a network capture tool.
 
-- *`frp`'s STCP*
+- *`frp`'s STCP or other setup that requires visitors' side configuration*
 
-  You may want to consider secure tunnels like wireguard or zerotier.
-
-- *P2P hole punching*
-
-  P2P hole punching requires setup on the visitors' side. If that kind of setup is possible, then there are a lot more tools available. `rathole` primarily focuses on NAT traversal by forwarding, which doesn't require any setup for visitors.
+  If that kind of setup is possible, then there are a lot more tools available. You may want to consider secure tunnels like wireguard or zerotier. `rathole` primarily focuses on NAT traversal by forwarding, which doesn't require any setup for visitors. 
