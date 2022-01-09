@@ -6,14 +6,14 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{TcpTransport, Transport, TransportStream};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tokio::io::{self, copy_bidirectional, AsyncReadExt, AsyncWriteExt};
+use tokio::io::{self, copy_bidirectional, AsyncReadExt, AsyncWriteExt, AsyncRead, AsyncWrite};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
 use tokio::time::{self, Duration};
@@ -148,6 +148,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
     }
 }
 
+
 struct RunDataChannelArgs<T: Transport> {
     session_key: Nonce,
     remote_addr: String,
@@ -157,7 +158,7 @@ struct RunDataChannelArgs<T: Transport> {
 
 async fn do_data_channel_handshake<T: Transport>(
     args: Arc<RunDataChannelArgs<T>>,
-) -> Result<T::Stream> {
+) -> Result<(TransportStream<T>)> {
     // Retry at least every 100ms, at most for 10 seconds
     let backoff = ExponentialBackoff {
         max_interval: Duration::from_millis(100),
@@ -167,7 +168,7 @@ async fn do_data_channel_handshake<T: Transport>(
 
     // FIXME: Respect control channel shutdown here
     // Connect to remote_addr
-    let mut conn: T::Stream = backoff::future::retry_notify(
+    let mut conn = backoff::future::retry_notify(
         backoff,
         || async {
             Ok(args
@@ -182,11 +183,12 @@ async fn do_data_channel_handshake<T: Transport>(
     )
     .await?;
 
-    // Send nonce
+    // Send nonce using reliable stream
     let v: &[u8; HASH_WIDTH_IN_BYTES] = args.session_key[..].try_into().unwrap();
     let hello = Hello::DataChannelHello(CURRENT_PROTO_VERSION, v.to_owned());
-    conn.write_all(&bincode::serialize(&hello).unwrap()).await?;
+    conn.write_all_reliably(&bincode::serialize(&hello).unwrap()).await?;
 
+    // return the unreliable connection if one has been provided.
     Ok(conn)
 }
 
@@ -195,12 +197,28 @@ async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Res
     let mut conn = do_data_channel_handshake(args.clone()).await?;
 
     // Forward
-    match read_data_cmd(&mut conn).await? {
+    match read_data_cmd(&mut conn.get_reliable_stream()).await? {
         DataChannelCmd::StartForwardTcp => {
-            run_data_channel_for_tcp::<T>(conn, &args.local_addr).await?;
+            match conn {
+                TransportStream::StrictlyReliable(reliable) => {
+                    run_data_channel_for_tcp::<T, T::ReliableStream>(reliable, &args.local_addr).await?;
+                }
+                TransportStream::PartiallyReliable(_, unreliable) => {
+                    run_data_channel_for_tcp::<T, T::UnreliableStream>(unreliable, &args.local_addr).await?;
+                }
+            }
+
         }
         DataChannelCmd::StartForwardUdp => {
-            run_data_channel_for_udp::<T>(conn, &args.local_addr).await?;
+            match conn {
+                TransportStream::StrictlyReliable(reliable) => {
+                    run_data_channel_for_udp::<T, T::ReliableStream>(reliable, &args.local_addr).await?;
+                }
+                TransportStream::PartiallyReliable(_, unreliable) => {
+                    run_data_channel_for_udp::<T, T::UnreliableStream>(unreliable, &args.local_addr).await?;
+                }
+            }
+
         }
     }
     Ok(())
@@ -208,8 +226,8 @@ async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Res
 
 // Simply copying back and forth for TCP
 #[instrument(skip(conn))]
-async fn run_data_channel_for_tcp<T: Transport>(
-    mut conn: T::Stream,
+async fn run_data_channel_for_tcp<T: Transport, S: AsyncRead + AsyncWrite + Unpin>(
+    mut conn: S,
     local_addr: &str,
 ) -> Result<()> {
     debug!("New data channel starts forwarding");
@@ -228,7 +246,8 @@ async fn run_data_channel_for_tcp<T: Transport>(
 type UdpPortMap = Arc<RwLock<HashMap<SocketAddr, mpsc::Sender<Bytes>>>>;
 
 #[instrument(skip(conn))]
-async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &str) -> Result<()> {
+async fn run_data_channel_for_udp<T: Transport, S: 'static + AsyncRead + AsyncWrite + Send>( mut conn: S,
+                                                    local_addr: &str) -> Result<()> {
     debug!("New data channel starts forwarding");
 
     let port_map: UdpPortMap = Arc::new(RwLock::new(HashMap::new()));
@@ -375,12 +394,14 @@ struct ControlChannelHandle {
 impl<T: 'static + Transport> ControlChannel<T> {
     #[instrument(skip_all)]
     async fn run(&mut self) -> Result<()> {
-        let mut conn = self
+        // ignore unreliable stream, it is not needed for running the control channel
+        let mut conn_both = self
             .transport
             .connect(&self.remote_addr)
             .await
             .with_context(|| format!("Failed to connect to the server: {}", &self.remote_addr))?;
 
+        let mut conn = conn_both.get_reliable_stream();
         // Send hello
         debug!("Sending hello");
         let hello_send =

@@ -9,6 +9,8 @@ use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use snowstorm::{Builder, NoiseParams, NoiseStream};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::transport::{TransportStream, UnimplementedUnreliableStream};
+use crate::transport::TransportStream::StrictlyReliable;
 
 pub struct NoiseTransport {
     config: NoiseConfig,
@@ -36,8 +38,9 @@ impl NoiseTransport {
 #[async_trait]
 impl Transport for NoiseTransport {
     type Acceptor = TcpListener;
+    type ReliableStream = snowstorm::stream::NoiseStream<TcpStream>;
+    type UnreliableStream = UnimplementedUnreliableStream;
     type RawStream = TcpStream;
-    type Stream = snowstorm::stream::NoiseStream<TcpStream>;
 
     async fn new(config: &TransportConfig) -> Result<Self> {
         let config = match &config.noise {
@@ -81,14 +84,14 @@ impl Transport for NoiseTransport {
         Ok((conn, addr))
     }
 
-    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
+    async fn handshake(&self, conn: Self::RawStream) -> Result<TransportStream<Self>> {
         let conn = NoiseStream::handshake(conn, self.builder().build_responder()?)
             .await
             .with_context(|| "Failed to do noise handshake")?;
-        Ok(conn)
+        Ok(StrictlyReliable(conn))
     }
 
-    async fn connect(&self, addr: &str) -> Result<Self::Stream> {
+    async fn connect(&self, addr: &str) -> Result<TransportStream<Self>> {
         let conn = TcpStream::connect(addr)
             .await
             .with_context(|| "Failed to connect TCP socket")?;
@@ -97,6 +100,6 @@ impl Transport for NoiseTransport {
         let conn = NoiseStream::handshake(conn, self.builder().build_initiator()?)
             .await
             .with_context(|| "Failed to do noise handshake")?;
-        return Ok(conn);
+        return Ok(StrictlyReliable(conn));
     }
 }

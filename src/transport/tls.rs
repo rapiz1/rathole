@@ -9,6 +9,8 @@ use tokio::fs;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio_native_tls::native_tls::{self, Certificate, Identity};
 use tokio_native_tls::{TlsAcceptor, TlsConnector, TlsStream};
+use crate::transport::{TransportStream, UnimplementedUnreliableStream};
+use crate::transport::TransportStream::StrictlyReliable;
 
 #[derive(Debug)]
 pub struct TlsTransport {
@@ -20,8 +22,9 @@ pub struct TlsTransport {
 #[async_trait]
 impl Transport for TlsTransport {
     type Acceptor = TcpListener;
+    type ReliableStream = TlsStream<TcpStream>;
+    type UnreliableStream = UnimplementedUnreliableStream;
     type RawStream = TcpStream;
-    type Stream = TlsStream<TcpStream>;
 
     async fn new(config: &TransportConfig) -> Result<Self> {
         let config = match &config.tls {
@@ -81,17 +84,17 @@ impl Transport for TlsTransport {
         Ok((conn, addr))
     }
 
-    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
+    async fn handshake(&self, conn: Self::RawStream) -> Result<TransportStream<Self>> {
         let conn = self.tls_acceptor.as_ref().unwrap().accept(conn).await?;
-        Ok(conn)
+        Ok(StrictlyReliable(conn))
     }
 
-    async fn connect(&self, addr: &str) -> Result<Self::Stream> {
+    async fn connect(&self, addr: &str) -> Result<TransportStream<Self>> {
         let conn = TcpStream::connect(&addr).await?;
         set_tcp_keepalive(&conn);
 
         let connector = self.connector.as_ref().unwrap();
-        Ok(connector
+        Ok(StrictlyReliable(connector
             .connect(
                 self.config
                     .hostname
@@ -99,6 +102,6 @@ impl Transport for TlsTransport {
                     .unwrap_or(&String::from(addr.split(':').next().unwrap())),
                 conn,
             )
-            .await?)
+            .await?))
     }
 }
