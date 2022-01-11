@@ -69,6 +69,7 @@ base64 = { version = "0.13", optional = true }
 notify = { version = "5.0.0-pre.13", optional = true }
 console-subscriber = { version = "0.1", optional = true, features = ["parking_lot"] }
 const_format = "0.2"
+atty = "0.2"
 
 [build-dependencies]
 vergen = { version = "6.0", default-features = false, features = ["build", "git", "cargo"] }

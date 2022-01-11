@@ -30,11 +30,14 @@ async fn main() -> Result<()> {
     }
     #[cfg(not(feature = "console"))]
     {
+        let is_atty = atty::is(atty::Stream::Stdout);
+
         let level = "info"; // if RUST_LOG not present, use `info` level
         tracing_subscriber::fmt()
             .with_env_filter(
                 EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::from(level)),
             )
+            .with_ansi(is_atty)
             .init();
     }
 

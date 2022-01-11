@@ -1507,6 +1507,7 @@ version = "0.3.4"
 dependencies = [
  "anyhow",
  "async-trait",
+ "atty",
  "backoff",
  "base64",
  "bincode",
