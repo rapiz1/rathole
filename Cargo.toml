@@ -8,6 +8,7 @@ license = "Apache-2.0"
 repository = "https://github.com/rapiz1/rathole"
 readme = "README.md"
 build = "build.rs"
+include = ["src/**/*", "LICENSE", "README.md", "build.rs"]
 
 [features]
 default = ["server", "client", "tls", "noise", "hot-reload"]
