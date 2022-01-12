@@ -96,10 +96,16 @@ pub struct NoiseConfig {
     // TODO: Maybe psk can be added
 }
 
+fn default_nodelay() -> bool {
+    false
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
     pub transport_type: TransportType,
+    #[serde(default = "default_nodelay")]
+    pub nodelay: bool,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
 }

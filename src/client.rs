@@ -82,9 +82,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
             config,
             service_handles: HashMap::new(),
             transport: Arc::new(
-                T::new(&config.transport)
-                    .await
-                    .with_context(|| "Failed to create the transport")?,
+                T::new(&config.transport).with_context(|| "Failed to create the transport")?,
             ),
         })
     }

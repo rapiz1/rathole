@@ -5,28 +5,17 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use socket2::{SockRef, TcpKeepalive};
 use tokio::net::{lookup_host, TcpStream, ToSocketAddrs, UdpSocket};
-use tracing::error;
 
 // Tokio hesitates to expose this option...So we have to do it on our own :(
 // The good news is that using socket2 it can be easily done, without losing portability.
 // See https://github.com/tokio-rs/tokio/issues/3082
-pub fn try_set_tcp_keepalive(conn: &TcpStream) -> Result<()> {
+pub fn try_set_tcp_keepalive(conn: &TcpStream, duration: Duration) -> Result<()> {
     let s = SockRef::from(conn);
-    let keepalive = TcpKeepalive::new().with_time(Duration::from_secs(30));
-    s.set_tcp_keepalive(&keepalive)
-        .with_context(|| "Failed to set keepalive")
-}
-
-pub fn set_tcp_keepalive(conn: &TcpStream) {
-    if let Err(e) = try_set_tcp_keepalive(conn) {
-        error!(
-            "Failed to set TCP keepalive. The connection maybe unstable: {:?}",
-            e
-        );
-    }
+    let keepalive = TcpKeepalive::new().with_time(duration);
+    Ok(s.set_tcp_keepalive(&keepalive)?)
 }
 
 #[allow(dead_code)]

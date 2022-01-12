@@ -111,7 +111,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
             config,
             services: Arc::new(RwLock::new(generate_service_hashmap(config))),
             control_channels: Arc::new(RwLock::new(ControlChannelMap::new())),
-            transport: Arc::new(T::new(&config.transport).await?),
+            transport: Arc::new(T::new(&config.transport)?),
         })
     }
 

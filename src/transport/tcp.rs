@@ -1,14 +1,15 @@
 use crate::config::TransportConfig;
-use crate::helper::set_tcp_keepalive;
 
-use super::Transport;
+use super::{SocketOpts, Transport};
 use anyhow::Result;
 use async_trait::async_trait;
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 
 #[derive(Debug)]
-pub struct TcpTransport {}
+pub struct TcpTransport {
+    socket_opts: SocketOpts,
+}
 
 #[async_trait]
 impl Transport for TcpTransport {
@@ -16,8 +17,14 @@ impl Transport for TcpTransport {
     type Stream = TcpStream;
     type RawStream = TcpStream;
 
-    async fn new(_config: &TransportConfig) -> Result<Self> {
-        Ok(TcpTransport {})
+    fn new(config: &TransportConfig) -> Result<Self> {
+        Ok(TcpTransport {
+            socket_opts: SocketOpts::from(config),
+        })
+    }
+
+    fn hint(conn: &Self::RawStream, opt: SocketOpts) {
+        opt.apply(conn);
     }
 
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor> {
@@ -26,7 +33,7 @@ impl Transport for TcpTransport {
 
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
         let (s, addr) = a.accept().await?;
-        set_tcp_keepalive(&s);
+        self.socket_opts.apply(&s);
         Ok((s, addr))
     }
 
@@ -36,7 +43,7 @@ impl Transport for TcpTransport {
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
         let s = TcpStream::connect(addr).await?;
-        set_tcp_keepalive(&s);
+        self.socket_opts.apply(&s);
         Ok(s)
     }
 }
