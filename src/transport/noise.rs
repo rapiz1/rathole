@@ -36,6 +36,7 @@ impl NoiseTransport {
 #[async_trait]
 impl Transport for NoiseTransport {
     type Acceptor = TcpListener;
+    type RawStream = TcpStream;
     type Stream = snowstorm::stream::NoiseStream<TcpStream>;
 
     async fn new(config: &TransportConfig) -> Result<Self> {
@@ -71,17 +72,20 @@ impl Transport for NoiseTransport {
         Ok(TcpListener::bind(addr).await?)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
+    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
         let (conn, addr) = a
             .accept()
             .await
             .with_context(|| "Failed to accept TCP connection")?;
         set_tcp_keepalive(&conn);
+        Ok((conn, addr))
+    }
 
+    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
         let conn = NoiseStream::handshake(conn, self.builder().build_responder()?)
             .await
             .with_context(|| "Failed to do noise handshake")?;
-        Ok((conn, addr))
+        Ok(conn)
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
