@@ -28,6 +28,8 @@ pub struct ClientServiceConfig {
     pub name: String,
     pub local_addr: String,
     pub token: Option<String>,
+    #[serde(default = "default_nodelay")]
+    pub nodelay: bool,
 }
 
 impl ClientServiceConfig {
@@ -65,6 +67,8 @@ pub struct ServerServiceConfig {
     pub name: String,
     pub bind_addr: String,
     pub token: Option<String>,
+    #[serde(default = "default_nodelay")]
+    pub nodelay: bool,
 }
 
 impl ServerServiceConfig {
@@ -300,6 +304,7 @@ mod tests {
                 name: "foo1".into(),
                 bind_addr: "127.0.0.1:80".into(),
                 token: None,
+                ..Default::default()
             },
         );
 
@@ -347,6 +352,7 @@ mod tests {
                 name: "foo1".into(),
                 local_addr: "127.0.0.1:80".into(),
                 token: None,
+                ..Default::default()
             },
         );
 

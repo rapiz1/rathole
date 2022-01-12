@@ -68,8 +68,8 @@ impl Transport for TlsTransport {
         })
     }
 
-    fn hint(conn: &Self::RawStream, opt: SocketOpts) {
-        opt.apply(conn);
+    fn hint(conn: &Self::Stream, opt: SocketOpts) {
+        opt.apply(conn.get_ref().get_ref().get_ref());
     }
 
     async fn bind<A: ToSocketAddrs + Send + Sync>(&self, addr: A) -> Result<Self::Acceptor> {

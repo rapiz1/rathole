@@ -69,8 +69,8 @@ impl Transport for NoiseTransport {
         })
     }
 
-    fn hint(conn: &Self::RawStream, opt: SocketOpts) {
-        opt.apply(conn);
+    fn hint(_conn: &Self::Stream, _opt: SocketOpts) {
+        //FIXME: wait for snowstorm
     }
 
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor> {

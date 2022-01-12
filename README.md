@@ -109,6 +109,7 @@ remote_public_key = "key_encoded_in_base64" # Optional
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
 local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
+nodelay = false # Optional. Determine whether to enable TCP_NODELAY for data transmission, if applicable, to improve the latency but decrease the bandwidth. Default: false
 
 [client.services.service2] # Multiple services can be defined
 local_addr = "127.0.0.1:1082"
@@ -119,6 +120,7 @@ default_token = "default_token_if_not_specify" # Optional
 
 [server.transport] # Same as `[client.transport]`
 type = "tcp" 
+nodelay = false
 
 [server.transport.tls] # Necessary if `type` is "tls"
 pkcs12 = "identify.pfx" # Necessary. pkcs12 file of server's certificate and private key
@@ -133,6 +135,7 @@ remote_public_key = "key_encoded_in_base64"
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
 token = "whatever" # Necessary if `server.default_token` not set
 bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change. 
+nodelay = false # Optional. Same as the client
 
 [server.services.service2] 
 bind_addr = "0.0.0.1:8082"

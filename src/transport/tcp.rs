@@ -19,11 +19,11 @@ impl Transport for TcpTransport {
 
     fn new(config: &TransportConfig) -> Result<Self> {
         Ok(TcpTransport {
-            socket_opts: SocketOpts::from(config),
+            socket_opts: SocketOpts::from_transport_cfg(config),
         })
     }
 
-    fn hint(conn: &Self::RawStream, opt: SocketOpts) {
+    fn hint(conn: &Self::Stream, opt: SocketOpts) {
         opt.apply(conn);
     }
 

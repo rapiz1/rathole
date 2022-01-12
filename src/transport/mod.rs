@@ -1,4 +1,4 @@
-use crate::config::TransportConfig;
+use crate::config::{ClientServiceConfig, ServerServiceConfig, TransportConfig};
 use crate::helper::try_set_tcp_keepalive;
 use anyhow::{Context, Result};
 use async_trait::async_trait;
@@ -41,8 +41,9 @@ mod noise;
 #[cfg(feature = "noise")]
 pub use noise::NoiseTransport;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct SocketOpts {
+    // None means do not change
     pub nodelay: Option<bool>,
     pub keepalive_secs: Option<u64>,
 }
@@ -57,10 +58,24 @@ impl Default for SocketOpts {
 }
 
 impl SocketOpts {
-    pub fn from(config: &TransportConfig) -> SocketOpts {
+    pub fn from_transport_cfg(cfg: &TransportConfig) -> SocketOpts {
         SocketOpts {
-            nodelay: Some(config.nodelay),
+            nodelay: Some(cfg.nodelay),
             ..Default::default()
+        }
+    }
+
+    pub fn from_client_cfg(cfg: &ClientServiceConfig) -> SocketOpts {
+        SocketOpts {
+            nodelay: Some(cfg.nodelay),
+            keepalive_secs: None,
+        }
+    }
+
+    pub fn from_server_cfg(cfg: &ServerServiceConfig) -> SocketOpts {
+        SocketOpts {
+            nodelay: Some(cfg.nodelay),
+            keepalive_secs: None,
         }
     }
 
@@ -81,5 +96,13 @@ impl SocketOpts {
                 error!("{:?}", e);
             }
         }
+    }
+}
+
+/// Socket options for the control channel
+pub fn control_channel_socket_opts() -> SocketOpts {
+    SocketOpts {
+        nodelay: Some(true),  // Always set nodelay for the control channel
+        keepalive_secs: None, // None means do not change. Keepalive is set by TcpTransport
     }
 }
