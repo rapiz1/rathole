@@ -99,6 +99,7 @@ jobs:
         files: target/${{ matrix.target }}/release/rathole-${{ matrix.target }}.zip
         generate_release_notes: true
   docker:
+    name: Publish to Docker Hub
     runs-on: ubuntu-latest
     steps:
       - name: Set up Docker Buildx
@@ -114,3 +115,16 @@ jobs:
         with:
           push: true
           tags: rapiz1/rathole:latest, rapiz1/rathole:${{ github.ref_name }}
+  publish-crate:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - name: Publish
+        env: 
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_TOKEN }}
+        run: cargo publish
