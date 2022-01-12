@@ -14,11 +14,13 @@ use tokio_native_tls::{TlsAcceptor, TlsConnector, TlsStream};
 pub struct TlsTransport {
     config: TlsConfig,
     connector: Option<TlsConnector>,
+    tls_acceptor: Option<TlsAcceptor>,
 }
 
 #[async_trait]
 impl Transport for TlsTransport {
-    type Acceptor = (TcpListener, TlsAcceptor);
+    type Acceptor = TcpListener;
+    type RawStream = TcpStream;
     type Stream = TlsStream<TcpStream>;
 
     async fn new(config: &TransportConfig) -> Result<Self> {
@@ -44,32 +46,44 @@ impl Transport for TlsTransport {
             None => None,
         };
 
+        let tls_acceptor = match config.pkcs12.as_ref() {
+            Some(path) => {
+                let ident = Identity::from_pkcs12(
+                    &fs::read(path).await?,
+                    config.pkcs12_password.as_ref().unwrap(),
+                )
+                .with_context(|| "Failed to create identitiy")?;
+                Some(TlsAcceptor::from(
+                    native_tls::TlsAcceptor::new(ident).unwrap(),
+                ))
+            }
+            None => None,
+        };
+
         Ok(TlsTransport {
             config: config.clone(),
             connector,
+            tls_acceptor,
         })
     }
 
     async fn bind<A: ToSocketAddrs + Send + Sync>(&self, addr: A) -> Result<Self::Acceptor> {
-        let ident = Identity::from_pkcs12(
-            &fs::read(self.config.pkcs12.as_ref().unwrap()).await?,
-            self.config.pkcs12_password.as_ref().unwrap(),
-        )
-        .with_context(|| "Failed to create identitiy")?;
         let l = TcpListener::bind(addr)
             .await
             .with_context(|| "Failed to create tcp listener")?;
-        let t = TlsAcceptor::from(native_tls::TlsAcceptor::new(ident).unwrap());
-        Ok((l, t))
+        Ok(l)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
-        let (conn, addr) = a.0.accept().await?;
+    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
+        let (conn, addr) = a.accept().await?;
         set_tcp_keepalive(&conn);
 
-        let conn = a.1.accept(conn).await?;
-
         Ok((conn, addr))
+    }
+
+    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
+        let conn = self.tls_acceptor.as_ref().unwrap().accept(conn).await?;
+        Ok(conn)
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {

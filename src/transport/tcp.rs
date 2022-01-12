@@ -14,6 +14,7 @@ pub struct TcpTransport {}
 impl Transport for TcpTransport {
     type Acceptor = TcpListener;
     type Stream = TcpStream;
+    type RawStream = TcpStream;
 
     async fn new(_config: &TransportConfig) -> Result<Self> {
         Ok(TcpTransport {})
@@ -23,10 +24,14 @@ impl Transport for TcpTransport {
         Ok(TcpListener::bind(addr).await?)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)> {
+    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
         let (s, addr) = a.accept().await?;
         set_tcp_keepalive(&s);
         Ok((s, addr))
+    }
+
+    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
+        Ok(conn)
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {

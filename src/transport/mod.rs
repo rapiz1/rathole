@@ -10,13 +10,15 @@ use tokio::net::ToSocketAddrs;
 #[async_trait]
 pub trait Transport: Debug + Send + Sync {
     type Acceptor: Send + Sync;
+    type RawStream: Send + Sync;
     type Stream: 'static + AsyncRead + AsyncWrite + Unpin + Send + Sync + Debug;
 
     async fn new(config: &TransportConfig) -> Result<Self>
     where
         Self: Sized;
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor>;
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::Stream, SocketAddr)>;
+    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)>;
+    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream>;
     async fn connect(&self, addr: &str) -> Result<Self::Stream>;
 }
 

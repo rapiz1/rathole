@@ -33,6 +33,7 @@ type Nonce = protocol::Digest; // Also called `session_key`
 const TCP_POOL_SIZE: usize = 8; // The number of cached connections for TCP servies
 const UDP_POOL_SIZE: usize = 2; // The number of cached connections for UDP services
 const CHAN_SIZE: usize = 2048; // The capacity of various chans
+const HANDSHAKE_TIMEOUT: u64 = 5; // Timeout for transport handshake
 
 // The entrypoint of running a server
 pub async fn run_server(
@@ -138,7 +139,6 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
         // Wait for connections and shutdown signals
         loop {
             tokio::select! {
-                // FIXME: This should be cancel safe.
                 // Wait for incoming control and data channels
                 ret = self.transport.accept(&l) => {
                     match ret {
@@ -163,13 +163,27 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                         Ok((conn, addr)) => {
                             backoff.reset();
 
-                            let services = self.services.clone();
-                            let control_channels = self.control_channels.clone();
-                            tokio::spawn(async move {
-                                if let Err(err) = handle_connection(conn, services, control_channels).await {
-                                    error!("{:?}", err);
+                            // Do transport handshake with a timeout
+                            match time::timeout(Duration::from_secs(HANDSHAKE_TIMEOUT), self.transport.handshake(conn)).await {
+                                Ok(conn) => {
+                                    match conn.with_context(|| "Failed to do transport handshake") {
+                                        Ok(conn) => {
+                                            let services = self.services.clone();
+                                            let control_channels = self.control_channels.clone();
+                                            tokio::spawn(async move {
+                                                if let Err(err) = handle_connection(conn, services, control_channels).await {
+                                                    error!("{:?}", err);
+                                                }
+                                            }.instrument(info_span!("handle_connection", %addr)));
+                                        }, Err(e) => {
+                                            error!("{:?}", e);
+                                        }
+                                    }
+                                },
+                                Err(e) => {
+                                    error!("Transport handshake timeout: {}", e);
                                 }
-                            }.instrument(info_span!("handle_connection", %addr)));
+                            }
                         }
                     }
                 },
