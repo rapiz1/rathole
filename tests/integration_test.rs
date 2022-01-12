@@ -127,6 +127,8 @@ async fn test(config_path: &'static str, t: Type) -> Result<()> {
     client_shutdown_tx.send(true)?;
     let _ = tokio::join!(client);
 
+    // Wait for the server connection to be closed (quic)
+    time::sleep(Duration::from_millis(2500)).await;
     info!("restart the client");
     let client_shutdown_rx = client_shutdown_tx.subscribe();
     let client = tokio::spawn(async move {

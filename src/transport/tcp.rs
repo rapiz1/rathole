@@ -6,6 +6,8 @@ use anyhow::Result;
 use async_trait::async_trait;
 use std::net::SocketAddr;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+use crate::transport::{TransportStream, UnimplementedUnreliableStream};
+use crate::transport::TransportStream::StrictlyReliable;
 
 #[derive(Debug)]
 pub struct TcpTransport {}
@@ -13,7 +15,8 @@ pub struct TcpTransport {}
 #[async_trait]
 impl Transport for TcpTransport {
     type Acceptor = TcpListener;
-    type Stream = TcpStream;
+    type ReliableStream = TcpStream;
+    type UnreliableStream = UnimplementedUnreliableStream;
     type RawStream = TcpStream;
 
     async fn new(_config: &TransportConfig) -> Result<Self> {
@@ -30,13 +33,13 @@ impl Transport for TcpTransport {
         Ok((s, addr))
     }
 
-    async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
-        Ok(conn)
+    async fn handshake(&self, conn: Self::RawStream) -> Result<TransportStream<Self>> {
+        Ok(StrictlyReliable(conn))
     }
 
-    async fn connect(&self, addr: &str) -> Result<Self::Stream> {
+    async fn connect(&self, addr: &str) -> Result<TransportStream<Self>> {
         let s = TcpStream::connect(addr).await?;
         set_tcp_keepalive(&s);
-        Ok(s)
+        Ok(StrictlyReliable(s)) // TCP cannot provide unreliable stream
     }
 }

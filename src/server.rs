@@ -7,7 +7,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{TcpTransport, Transport, TransportStream};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -229,15 +229,15 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
 
 // Handle connections to `server.bind_addr`
 async fn handle_connection<T: 'static + Transport>(
-    mut conn: T::Stream,
+    mut conn: TransportStream<T>,
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
 ) -> Result<()> {
     // Read hello
-    let hello = read_hello(&mut conn).await?;
+    let hello = read_hello(&mut conn.get_reliable_stream()).await?;
     match hello {
         ControlChannelHello(_, service_digest) => {
-            do_control_channel_handshake(conn, services, control_channels, service_digest).await?;
+            do_control_channel_handshake(conn.into_reliable_stream(), services, control_channels, service_digest).await?;
         }
         DataChannelHello(_, nonce) => {
             do_data_channel_handshake(conn, control_channels, nonce).await?;
@@ -247,7 +247,7 @@ async fn handle_connection<T: 'static + Transport>(
 }
 
 async fn do_control_channel_handshake<T: 'static + Transport>(
-    mut conn: T::Stream,
+    mut conn: T::ReliableStream,
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
     service_digest: ServiceDigest,
@@ -326,7 +326,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
 }
 
 async fn do_data_channel_handshake<T: 'static + Transport>(
-    conn: T::Stream,
+    conn: TransportStream<T>,
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
     nonce: Nonce,
 ) -> Result<()> {
@@ -353,7 +353,7 @@ async fn do_data_channel_handshake<T: 'static + Transport>(
 pub struct ControlChannelHandle<T: Transport> {
     // Shutdown the control channel by dropping it
     _shutdown_tx: broadcast::Sender<bool>,
-    data_ch_tx: mpsc::Sender<T::Stream>,
+    data_ch_tx: mpsc::Sender<TransportStream<T>>,
 }
 
 impl<T> ControlChannelHandle<T>
@@ -363,7 +363,7 @@ where
     // Create a control channel handle, where the control channel handling task
     // and the connection pool task are created.
     #[instrument(skip_all, fields(service = %service.name))]
-    fn new(conn: T::Stream, service: ServerServiceConfig) -> ControlChannelHandle<T> {
+    fn new(conn: T::ReliableStream, service: ServerServiceConfig) -> ControlChannelHandle<T> {
         // Create a shutdown channel
         let (shutdown_tx, shutdown_rx) = broadcast::channel::<bool>(1);
 
@@ -449,7 +449,7 @@ where
 
 // Control channel, using T as the transport layer. P is TcpStream or UdpTraffic
 struct ControlChannel<T: Transport> {
-    conn: T::Stream,                               // The connection of control channel
+    conn: T::ReliableStream,                               // The connection of control channel
     service: ServerServiceConfig,                  // A copy of the corresponding service config
     shutdown_rx: broadcast::Receiver<bool>,        // Receives the shutdown signal
     data_ch_req_rx: mpsc::UnboundedReceiver<bool>, // Receives visitor connections
@@ -571,19 +571,26 @@ fn tcp_listen_and_send(
 }
 
 #[instrument(skip_all)]
-async fn run_tcp_connection_pool<T: Transport>(
+async fn run_tcp_connection_pool<T: 'static + Transport>(
     bind_addr: String,
-    mut data_ch_rx: mpsc::Receiver<T::Stream>,
+    mut data_ch_rx: mpsc::Receiver<TransportStream<T>>,
     data_ch_req_tx: mpsc::UnboundedSender<bool>,
     shutdown_rx: broadcast::Receiver<bool>,
 ) -> Result<()> {
     let mut visitor_rx = tcp_listen_and_send(bind_addr, data_ch_req_tx, shutdown_rx);
     while let Some(mut visitor) = visitor_rx.recv().await {
-        if let Some(mut ch) = data_ch_rx.recv().await {
+        if let Some(mut conn) = data_ch_rx.recv().await {
             tokio::spawn(async move {
                 let cmd = bincode::serialize(&DataChannelCmd::StartForwardTcp).unwrap();
-                if ch.write_all(&cmd).await.is_ok() {
-                    let _ = copy_bidirectional(&mut ch, &mut visitor).await;
+                if conn.write_all_reliably(&cmd).await.is_ok() {
+                    match conn {
+                        TransportStream::StrictlyReliable(mut reliable) => {
+                            let _ = copy_bidirectional(&mut reliable, &mut visitor).await;
+                        }
+                        TransportStream::PartiallyReliable(_, mut unreliable) => {
+                            let _ = copy_bidirectional(&mut unreliable, &mut visitor).await;
+                        }
+                    }
                 }
             });
         } else {
@@ -598,7 +605,7 @@ async fn run_tcp_connection_pool<T: Transport>(
 #[instrument(skip_all)]
 async fn run_udp_connection_pool<T: Transport>(
     bind_addr: String,
-    mut data_ch_rx: mpsc::Receiver<T::Stream>,
+    mut data_ch_rx: mpsc::Receiver<TransportStream<T>>,
     _data_ch_req_tx: mpsc::UnboundedSender<bool>,
     mut shutdown_rx: broadcast::Receiver<bool>,
 ) -> Result<()> {
@@ -616,8 +623,8 @@ async fn run_udp_connection_pool<T: Transport>(
             warn!("{:?}", e);
         },
     )
-    .await
-    .with_context(|| "Failed to listen for the service")?;
+        .await
+        .with_context(|| "Failed to listen for the service")?;
 
     info!("Listening at {}", &bind_addr);
 
@@ -628,13 +635,28 @@ async fn run_udp_connection_pool<T: Transport>(
         .recv()
         .await
         .ok_or(anyhow!("No available data channels"))?;
-    conn.write_all(&cmd).await?;
+    conn.write_all_reliably(&cmd).await?;
 
+    match conn {
+        TransportStream::StrictlyReliable(reliable) =>
+            udp_copy_bidirectional::<T, T::ReliableStream>(reliable, shutdown_rx, l).await,
+        TransportStream::PartiallyReliable(_, unreliable) =>
+            udp_copy_bidirectional::<T, T::UnreliableStream>(unreliable, shutdown_rx, l).await,
+    }
+}
+
+#[instrument(skip_all)]
+async fn udp_copy_bidirectional<T: Transport, S: tokio::io::AsyncRead + tokio::io::AsyncWrite + Unpin> (
+        mut conn: S,
+        mut shutdown_rx: broadcast::Receiver<bool>,
+        l: UdpSocket,
+    ) -> Result<()> {
+    // after sending forward CMD, use unreliable stream if available for actual forwarding
     let mut buf = [0u8; UDP_BUFFER_SIZE];
     loop {
         tokio::select! {
             // Forward inbound traffic to the client
-            val = l.recv_from(&mut buf) => {
+            val = l.recv_from(&mut buf)  => {
                 let (n, from) = val?;
                 UdpTraffic::write_slice(&mut conn, from, &buf[..n]).await?;
             },
