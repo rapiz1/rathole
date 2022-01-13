@@ -176,8 +176,8 @@ async fn do_data_channel_handshake<T: Transport>(
                 .await
                 .with_context(|| "Failed to connect to remote_addr")?)
         },
-        |e, _| {
-            warn!("{:?}", e);
+        |e, duration| {
+            warn!("{:?}. Retry in {:?}", e, duration);
         },
     )
     .await?;

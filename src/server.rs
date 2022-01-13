@@ -507,8 +507,8 @@ fn tcp_listen_and_send(
         // FIXME: Respect shutdown signal
         let l = backoff::future::retry_notify(listen_backoff(), || async {
             Ok(TcpListener::bind(&addr).await?)
-        }, |e, _| {
-            error!("{:?}", e);
+        }, |e, duration| {
+            error!("{:?}. Retry in {:?}", e, duration);
         })
         .await
         .with_context(|| "Failed to listen for the service");
@@ -618,8 +618,8 @@ async fn run_udp_connection_pool<T: Transport>(
                 .await
                 .with_context(|| "Failed to listen for the service")?)
         },
-        |e, _| {
-            warn!("{:?}", e);
+        |e, duration| {
+            warn!("{:?}. Retry in {:?}", e, duration);
         },
     )
     .await
