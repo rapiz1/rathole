@@ -392,10 +392,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
 
         // Read hello
         debug!("Reading hello");
-        let nonce = match read_hello(&mut conn)
-            .await
-            .with_context(|| "Failed to read hello from the server")?
-        {
+        let nonce = match read_hello(&mut conn).await? {
             ControlChannelHello(_, d) => d,
             _ => {
                 bail!("Unexpected type of hello");
