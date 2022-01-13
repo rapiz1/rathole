@@ -86,7 +86,7 @@ jobs:
         name: rathole-${{ matrix.target }}
         path: target/${{ matrix.target }}/release/${{ matrix.exe }}
     - name: Zip Release
-      uses: TheDoctor0/zip-release@0.6.0
+      uses: TheDoctor0/zip-release@0.6.1
       with:
         type: zip
         filename: rathole-${{ matrix.target }}.zip
@@ -98,6 +98,7 @@ jobs:
       with:
         files: target/${{ matrix.target }}/release/rathole-${{ matrix.target }}.zip
         generate_release_notes: true
+        draft: true
   docker:
     name: Publish to Docker Hub
     runs-on: ubuntu-latest
