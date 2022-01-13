@@ -7,7 +7,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{control_channel_socket_opts, SocketOpts, TcpTransport, Transport};
+use crate::transport::{SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -254,7 +254,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
 ) -> Result<()> {
     info!("Try to handshake a control channel");
 
-    T::hint(&conn, control_channel_socket_opts());
+    T::hint(&conn, SocketOpts::for_control_channel());
 
     // Generate a nonce
     let mut nonce = vec![0u8; HASH_WIDTH_IN_BYTES];

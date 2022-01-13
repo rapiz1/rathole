@@ -6,7 +6,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{control_channel_socket_opts, SocketOpts, TcpTransport, Transport};
+use crate::transport::{SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
@@ -383,7 +383,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
             .connect(&self.remote_addr)
             .await
             .with_context(|| format!("Failed to connect to the server: {}", &self.remote_addr))?;
-        T::hint(&conn, control_channel_socket_opts());
+        T::hint(&conn, SocketOpts::for_control_channel());
 
         // Send hello
         debug!("Sending hello");

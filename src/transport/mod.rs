@@ -9,7 +9,10 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::error;
 
-static TCP_KEEPALIVE_SECS: u64 = 30;
+pub static DEFAULT_NODELAY: bool = false;
+
+pub static DEFAULT_KEEPALIVE_SECS: u64 = 10;
+pub static DEFAULT_KEEPALIVE_INTERVAL: u64 = 5;
 
 /// Specify a transport layer, like TCP, TLS
 #[async_trait]
@@ -42,17 +45,34 @@ mod noise;
 pub use noise::NoiseTransport;
 
 #[derive(Debug, Clone, Copy)]
-pub struct SocketOpts {
-    // None means do not change
-    pub nodelay: Option<bool>,
-    pub keepalive_secs: Option<u64>,
+struct Keepalive {
+    // tcp_keepalive_time if the underlying protocol is TCP
+    pub keepalive_secs: u64,
+    // tcp_keepalive_intvl if the underlying protocol is TCP
+    pub keepalive_interval: u64,
 }
 
-impl Default for SocketOpts {
-    fn default() -> SocketOpts {
+#[derive(Debug, Clone, Copy)]
+pub struct SocketOpts {
+    // None means do not change
+    nodelay: Option<bool>,
+    // keepalive must be Some or None at the same time, or the behavior will be platform-dependent
+    keepalive: Option<Keepalive>,
+}
+
+impl SocketOpts {
+    fn none() -> SocketOpts {
         SocketOpts {
-            nodelay: Some(false),
-            keepalive_secs: Some(TCP_KEEPALIVE_SECS),
+            nodelay: None,
+            keepalive: None,
+        }
+    }
+
+    /// Socket options for the control channel
+    pub fn for_control_channel() -> SocketOpts {
+        SocketOpts {
+            nodelay: Some(true),  // Always set nodelay for the control channel
+            ..SocketOpts::none()  // None means do not change. Keepalive is set by TcpTransport
         }
     }
 }
@@ -61,27 +81,33 @@ impl SocketOpts {
     pub fn from_transport_cfg(cfg: &TransportConfig) -> SocketOpts {
         SocketOpts {
             nodelay: Some(cfg.nodelay),
-            ..Default::default()
+            keepalive: Some(Keepalive {
+                keepalive_secs: cfg.keepalive_secs,
+                keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+            }),
         }
     }
 
     pub fn from_client_cfg(cfg: &ClientServiceConfig) -> SocketOpts {
         SocketOpts {
-            nodelay: Some(cfg.nodelay),
-            keepalive_secs: None,
+            nodelay: cfg.nodelay,
+            ..SocketOpts::none()
         }
     }
 
     pub fn from_server_cfg(cfg: &ServerServiceConfig) -> SocketOpts {
         SocketOpts {
-            nodelay: Some(cfg.nodelay),
-            keepalive_secs: None,
+            nodelay: cfg.nodelay,
+            ..SocketOpts::none()
         }
     }
 
     pub fn apply(&self, conn: &TcpStream) {
-        if let Some(keepalive_secs) = self.keepalive_secs {
-            if let Err(e) = try_set_tcp_keepalive(conn, Duration::from_secs(keepalive_secs))
+        if let Some(v) = self.keepalive {
+            let keepalive_duration = Duration::from_secs(v.keepalive_secs);
+            let keepalive_interval = Duration::from_secs(v.keepalive_interval);
+
+            if let Err(e) = try_set_tcp_keepalive(conn, keepalive_duration, keepalive_interval)
                 .with_context(|| "Failed to set keepalive")
             {
                 error!("{:?}", e);
@@ -96,13 +122,5 @@ impl SocketOpts {
                 error!("{:?}", e);
             }
         }
-    }
-}
-
-/// Socket options for the control channel
-pub fn control_channel_socket_opts() -> SocketOpts {
-    SocketOpts {
-        nodelay: Some(true),  // Always set nodelay for the control channel
-        keepalive_secs: None, // None means do not change. Keepalive is set by TcpTransport
     }
 }

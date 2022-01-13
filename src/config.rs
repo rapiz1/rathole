@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 
+use crate::transport::{DEFAULT_KEEPALIVE_SECS, DEFAULT_NODELAY};
+
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub enum TransportType {
     #[serde(rename = "tcp")]
@@ -28,8 +30,7 @@ pub struct ClientServiceConfig {
     pub name: String,
     pub local_addr: String,
     pub token: Option<String>,
-    #[serde(default = "default_nodelay")]
-    pub nodelay: bool,
+    pub nodelay: Option<bool>,
 }
 
 impl ClientServiceConfig {
@@ -67,8 +68,7 @@ pub struct ServerServiceConfig {
     pub name: String,
     pub bind_addr: String,
     pub token: Option<String>,
-    #[serde(default = "default_nodelay")]
-    pub nodelay: bool,
+    pub nodelay: Option<bool>,
 }
 
 impl ServerServiceConfig {
@@ -101,7 +101,11 @@ pub struct NoiseConfig {
 }
 
 fn default_nodelay() -> bool {
-    false
+    DEFAULT_NODELAY
+}
+
+fn default_keepalive_secs() -> u64 {
+    DEFAULT_KEEPALIVE_SECS
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
@@ -110,6 +114,8 @@ pub struct TransportConfig {
     pub transport_type: TransportType,
     #[serde(default = "default_nodelay")]
     pub nodelay: bool,
+    #[serde(default = "default_keepalive_secs")]
+    pub keepalive_secs: u64,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
 }

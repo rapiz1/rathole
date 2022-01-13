@@ -60,7 +60,7 @@ rand = "0.8"
 backoff = { version="0.3", features=["tokio"] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
-socket2 = "0.4"
+socket2 = { version = "0.4", features = ["all"] }
 fdlimit = "0.2"
 tokio-native-tls = { version = "0.3", optional = true }
 async-trait = "0.1"

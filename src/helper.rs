@@ -12,9 +12,16 @@ use tokio::net::{lookup_host, TcpStream, ToSocketAddrs, UdpSocket};
 // Tokio hesitates to expose this option...So we have to do it on our own :(
 // The good news is that using socket2 it can be easily done, without losing portability.
 // See https://github.com/tokio-rs/tokio/issues/3082
-pub fn try_set_tcp_keepalive(conn: &TcpStream, duration: Duration) -> Result<()> {
+pub fn try_set_tcp_keepalive(
+    conn: &TcpStream,
+    keepalive_duration: Duration,
+    keepalive_interval: Duration,
+) -> Result<()> {
     let s = SockRef::from(conn);
-    let keepalive = TcpKeepalive::new().with_time(duration);
+    let keepalive = TcpKeepalive::new()
+        .with_time(keepalive_duration)
+        .with_interval(keepalive_interval);
+
     Ok(s.set_tcp_keepalive(&keepalive)?)
 }
 
