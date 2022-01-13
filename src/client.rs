@@ -186,6 +186,7 @@ async fn do_data_channel_handshake<T: Transport>(
     let v: &[u8; HASH_WIDTH_IN_BYTES] = args.session_key[..].try_into().unwrap();
     let hello = Hello::DataChannelHello(CURRENT_PROTO_VERSION, v.to_owned());
     conn.write_all(&bincode::serialize(&hello).unwrap()).await?;
+    conn.flush().await?;
 
     Ok(conn)
 }
@@ -387,6 +388,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
             Hello::ControlChannelHello(CURRENT_PROTO_VERSION, self.digest[..].try_into().unwrap());
         conn.write_all(&bincode::serialize(&hello_send).unwrap())
             .await?;
+        conn.flush().await?;
 
         // Read hello
         debug!("Reading hello");
@@ -408,6 +410,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
         let session_key = protocol::digest(&concat);
         let auth = Auth(session_key);
         conn.write_all(&bincode::serialize(&auth).unwrap()).await?;
+        conn.flush().await?;
 
         // Read ack
         debug!("Reading ack");

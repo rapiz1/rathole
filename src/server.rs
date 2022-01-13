@@ -265,6 +265,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
     );
     conn.write_all(&bincode::serialize(&hello_send).unwrap())
         .await?;
+    conn.flush().await?;
 
     // Lookup the service
     let service_config = match services.read().await.get(&service_digest) {
@@ -314,6 +315,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
         // Send ack
         conn.write_all(&bincode::serialize(&Ack::Ok).unwrap())
             .await?;
+        conn.flush().await?;
 
         info!(service = %service_config.name, "Control channel established");
         let handle = ControlChannelHandle::new(conn, service_config);
@@ -467,7 +469,11 @@ impl<T: Transport> ControlChannel<T> {
                 val = self.data_ch_req_rx.recv() => {
                     match val {
                         Some(_) => {
-                            if let Err(e) = self.conn.write_all(&cmd).await.with_context(||"Failed to write data cmds") {
+                            if let Err(e) = self.conn.write_all(&cmd).await.with_context(||"Failed to write control cmds") {
+                                error!("{:?}", e);
+                                break;
+                            }
+                            if let Err(e) = self.conn.flush().await.with_context(|| "Failed to flush control cmds") {
                                 error!("{:?}", e);
                                 break;
                             }
