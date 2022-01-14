@@ -7,7 +7,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -111,7 +111,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
             config,
             services: Arc::new(RwLock::new(generate_service_hashmap(config))),
             control_channels: Arc::new(RwLock::new(ControlChannelMap::new())),
-            transport: Arc::new(T::new(&config.transport).await?),
+            transport: Arc::new(T::new(&config.transport)?),
         })
     }
 
@@ -254,6 +254,8 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
 ) -> Result<()> {
     info!("Try to handshake a control channel");
 
+    T::hint(&conn, SocketOpts::for_control_channel());
+
     // Generate a nonce
     let mut nonce = vec![0u8; HASH_WIDTH_IN_BYTES];
     rand::thread_rng().fill_bytes(&mut nonce);
@@ -338,6 +340,8 @@ async fn do_data_channel_handshake<T: 'static + Transport>(
     let control_channels_guard = control_channels.read().await;
     match control_channels_guard.get2(&nonce) {
         Some(handle) => {
+            T::hint(&conn, SocketOpts::from_server_cfg(&handle.service));
+
             // Send the data channel to the corresponding control channel
             handle
                 .data_ch_tx
@@ -356,6 +360,7 @@ pub struct ControlChannelHandle<T: Transport> {
     // Shutdown the control channel by dropping it
     _shutdown_tx: broadcast::Sender<bool>,
     data_ch_tx: mpsc::Sender<T::Stream>,
+    service: ServerServiceConfig,
 }
 
 impl<T> ControlChannelHandle<T>
@@ -428,7 +433,7 @@ where
         let ch = ControlChannel::<T> {
             conn,
             shutdown_rx,
-            service,
+            service: service.clone(),
             data_ch_req_rx,
         };
 
@@ -445,6 +450,7 @@ where
         ControlChannelHandle {
             _shutdown_tx: shutdown_tx,
             data_ch_tx,
+            service,
         }
     }
 }

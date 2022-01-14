@@ -1,17 +1,17 @@
 use std::net::SocketAddr;
 
-use super::Transport;
+use super::{SocketOpts, TcpTransport, Transport};
 use crate::config::{TlsConfig, TransportConfig};
-use crate::helper::set_tcp_keepalive;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
-use tokio::fs;
+use std::fs;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio_native_tls::native_tls::{self, Certificate, Identity};
 use tokio_native_tls::{TlsAcceptor, TlsConnector, TlsStream};
 
 #[derive(Debug)]
 pub struct TlsTransport {
+    tcp: TcpTransport,
     config: TlsConfig,
     connector: Option<TlsConnector>,
     tls_acceptor: Option<TlsAcceptor>,
@@ -23,7 +23,8 @@ impl Transport for TlsTransport {
     type RawStream = TcpStream;
     type Stream = TlsStream<TcpStream>;
 
-    async fn new(config: &TransportConfig) -> Result<Self> {
+    fn new(config: &TransportConfig) -> Result<Self> {
+        let tcp = TcpTransport::new(config)?;
         let config = match &config.tls {
             Some(v) => v,
             None => {
@@ -34,7 +35,6 @@ impl Transport for TlsTransport {
         let connector = match config.trusted_root.as_ref() {
             Some(path) => {
                 let s = fs::read_to_string(path)
-                    .await
                     .with_context(|| "Failed to read the `tls.trusted_root`")?;
                 let cert = Certificate::from_pem(s.as_bytes())
                     .with_context(|| "Failed to read certificate from `tls.trusted_root`")?;
@@ -49,7 +49,7 @@ impl Transport for TlsTransport {
         let tls_acceptor = match config.pkcs12.as_ref() {
             Some(path) => {
                 let ident = Identity::from_pkcs12(
-                    &fs::read(path).await?,
+                    &fs::read(path)?,
                     config.pkcs12_password.as_ref().unwrap(),
                 )
                 .with_context(|| "Failed to create identitiy")?;
@@ -61,10 +61,15 @@ impl Transport for TlsTransport {
         };
 
         Ok(TlsTransport {
+            tcp,
             config: config.clone(),
             connector,
             tls_acceptor,
         })
+    }
+
+    fn hint(conn: &Self::Stream, opt: SocketOpts) {
+        opt.apply(conn.get_ref().get_ref().get_ref());
     }
 
     async fn bind<A: ToSocketAddrs + Send + Sync>(&self, addr: A) -> Result<Self::Acceptor> {
@@ -75,10 +80,10 @@ impl Transport for TlsTransport {
     }
 
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
-        let (conn, addr) = a.accept().await?;
-        set_tcp_keepalive(&conn);
-
-        Ok((conn, addr))
+        self.tcp
+            .accept(a)
+            .await
+            .with_context(|| "Failed to accept TCP connection")
     }
 
     async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream> {
@@ -87,8 +92,7 @@ impl Transport for TlsTransport {
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
-        let conn = TcpStream::connect(&addr).await?;
-        set_tcp_keepalive(&conn);
+        let conn = self.tcp.connect(addr).await?;
 
         let connector = self.connector.as_ref().unwrap();
         Ok(connector

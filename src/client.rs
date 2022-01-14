@@ -6,7 +6,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{TcpTransport, Transport};
+use crate::transport::{SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
@@ -82,9 +82,7 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
             config,
             service_handles: HashMap::new(),
             transport: Arc::new(
-                T::new(&config.transport)
-                    .await
-                    .with_context(|| "Failed to create the transport")?,
+                T::new(&config.transport).with_context(|| "Failed to create the transport")?,
             ),
         })
     }
@@ -153,6 +151,7 @@ struct RunDataChannelArgs<T: Transport> {
     remote_addr: String,
     local_addr: String,
     connector: Arc<T>,
+    socket_opts: SocketOpts,
 }
 
 async fn do_data_channel_handshake<T: Transport>(
@@ -170,11 +169,14 @@ async fn do_data_channel_handshake<T: Transport>(
     let mut conn: T::Stream = backoff::future::retry_notify(
         backoff,
         || async {
-            Ok(args
+            let conn = args
                 .connector
                 .connect(&args.remote_addr)
                 .await
-                .with_context(|| "Failed to connect to remote_addr")?)
+                .with_context(|| "Failed to connect to remote_addr")?;
+            T::hint(&conn, args.socket_opts);
+
+            Ok(conn)
         },
         |e, duration| {
             warn!("{:?}. Retry in {:?}", e, duration);
@@ -381,6 +383,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
             .connect(&self.remote_addr)
             .await
             .with_context(|| format!("Failed to connect to the server: {}", &self.remote_addr))?;
+        T::hint(&conn, SocketOpts::for_control_channel());
 
         // Send hello
         debug!("Sending hello");
@@ -424,11 +427,14 @@ impl<T: 'static + Transport> ControlChannel<T> {
 
         let remote_addr = self.remote_addr.clone();
         let local_addr = self.service.local_addr.clone();
+        // Socket options for the data channel
+        let socket_opts = SocketOpts::from_client_cfg(&self.service);
         let data_ch_args = Arc::new(RunDataChannelArgs {
             session_key,
             remote_addr,
             local_addr,
             connector: self.transport.clone(),
+            socket_opts,
         });
 
         loop {
