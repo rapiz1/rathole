@@ -8,6 +8,7 @@ use std::{
 use anyhow::{anyhow, Result};
 use socket2::{SockRef, TcpKeepalive};
 use tokio::net::{lookup_host, TcpStream, ToSocketAddrs, UdpSocket};
+use tracing::trace;
 
 // Tokio hesitates to expose this option...So we have to do it on our own :(
 // The good news is that using socket2 it can be easily done, without losing portability.
@@ -21,6 +22,12 @@ pub fn try_set_tcp_keepalive(
     let keepalive = TcpKeepalive::new()
         .with_time(keepalive_duration)
         .with_interval(keepalive_interval);
+
+    trace!(
+        "Set TCP keepalive {:?} {:?}",
+        keepalive_duration,
+        keepalive_interval
+    );
 
     Ok(s.set_tcp_keepalive(&keepalive)?)
 }

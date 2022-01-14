@@ -108,7 +108,7 @@ fn default_keepalive_secs() -> u64 {
     DEFAULT_KEEPALIVE_SECS
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
     pub transport_type: TransportType,
@@ -118,6 +118,18 @@ pub struct TransportConfig {
     pub keepalive_secs: u64,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
+}
+
+impl Default for TransportConfig {
+    fn default() -> TransportConfig {
+        TransportConfig {
+            transport_type: Default::default(),
+            nodelay: default_nodelay(),
+            keepalive_secs: default_keepalive_secs(),
+            tls: None,
+            noise: None,
+        }
+    }
 }
 
 fn default_transport() -> TransportConfig {

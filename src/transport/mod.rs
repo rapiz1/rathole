@@ -7,7 +7,7 @@ use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpStream, ToSocketAddrs};
-use tracing::error;
+use tracing::{error, trace};
 
 pub static DEFAULT_NODELAY: bool = false;
 
@@ -115,6 +115,7 @@ impl SocketOpts {
         }
 
         if let Some(nodelay) = self.nodelay {
+            trace!("Set nodelay {}", nodelay);
             if let Err(e) = conn
                 .set_nodelay(nodelay)
                 .with_context(|| "Failed to set nodelay")
