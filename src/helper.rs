@@ -84,8 +84,6 @@ pub fn floor_to_pow_of_2(x: usize) -> usize {
 mod test {
     use crate::helper::{floor_to_pow_of_2, log2_floor};
 
-    use super::udp_connect;
-
     #[test]
     fn test_log2_floor() {
         let t = [
