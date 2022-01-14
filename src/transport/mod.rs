@@ -12,7 +12,7 @@ use tracing::{error, trace};
 pub static DEFAULT_NODELAY: bool = false;
 
 pub static DEFAULT_KEEPALIVE_SECS: u64 = 10;
-pub static DEFAULT_KEEPALIVE_INTERVAL: u64 = 5;
+pub static DEFAULT_KEEPALIVE_INTERVAL: u64 = 3;
 
 /// Specify a transport layer, like TCP, TLS
 #[async_trait]
