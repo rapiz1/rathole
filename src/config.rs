@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::fs;
 
-use crate::transport::{DEFAULT_KEEPALIVE_SECS, DEFAULT_NODELAY};
+use crate::transport::{DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_SECS, DEFAULT_NODELAY};
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq)]
 pub enum TransportType {
@@ -108,6 +108,10 @@ fn default_keepalive_secs() -> u64 {
     DEFAULT_KEEPALIVE_SECS
 }
 
+fn default_keepalive_interval() -> u64 {
+    DEFAULT_KEEPALIVE_INTERVAL
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
@@ -116,6 +120,8 @@ pub struct TransportConfig {
     pub nodelay: bool,
     #[serde(default = "default_keepalive_secs")]
     pub keepalive_secs: u64,
+    #[serde(default = "default_keepalive_interval")]
+    pub keepalive_interval: u64,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
 }
@@ -126,6 +132,7 @@ impl Default for TransportConfig {
             transport_type: Default::default(),
             nodelay: default_nodelay(),
             keepalive_secs: default_keepalive_secs(),
+            keepalive_interval: default_keepalive_interval(),
             tls: None,
             noise: None,
         }

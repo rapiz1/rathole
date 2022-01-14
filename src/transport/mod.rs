@@ -83,7 +83,7 @@ impl SocketOpts {
             nodelay: Some(cfg.nodelay),
             keepalive: Some(Keepalive {
                 keepalive_secs: cfg.keepalive_secs,
-                keepalive_interval: DEFAULT_KEEPALIVE_INTERVAL,
+                keepalive_interval: cfg.keepalive_interval,
             }),
         }
     }
