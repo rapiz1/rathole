@@ -149,7 +149,7 @@ async fn config_watcher(
                     let _ = fevent_tx.blocking_send(true);
                 }
             }
-            Err(e) => error!("watch error: {:?}", e),
+            Err(e) => error!("watch error: {:#}", e),
         })?;
 
     watcher.watch(&path, RecursiveMode::NonRecursive)?;
@@ -164,7 +164,7 @@ async fn config_watcher(
                     let new = match Config::from_file(&path).await.with_context(|| "The changed configuration is invalid. Ignored") {
                       Ok(v) => v,
                       Err(e) => {
-                        error!("{:?}", e);
+                        error!("{:#}", e);
                         // If the config is invalid, just ignore it
                         continue;
                       }

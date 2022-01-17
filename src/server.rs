@@ -149,7 +149,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                                 // EMFILE. So sleep for a while and retry
                                 // TODO: Only sleep for EMFILE, ENFILE, ENOMEM, ENOBUFS
                                 if let Some(d) = backoff.next_backoff() {
-                                    error!("Failed to accept: {}. Retry in {:?}...", err, d);
+                                    error!("Failed to accept: {:#}. Retry in {:?}...", err, d);
                                     time::sleep(d).await;
                                 } else {
                                     // This branch will never be executed according to the current retry policy
@@ -172,11 +172,11 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                                             let control_channels = self.control_channels.clone();
                                             tokio::spawn(async move {
                                                 if let Err(err) = handle_connection(conn, services, control_channels).await {
-                                                    error!("{:?}", err);
+                                                    error!("{:#}", err);
                                                 }
                                             }.instrument(info_span!("handle_connection", %addr)));
                                         }, Err(e) => {
-                                            error!("{:?}", e);
+                                            error!("{:#}", e);
                                         }
                                     }
                                 },
@@ -406,7 +406,7 @@ where
                     .await
                     .with_context(|| "Failed to run TCP connection pool")
                     {
-                        error!("{:?}", e);
+                        error!("{:#}", e);
                     }
                 }
                 .instrument(Span::current()),
@@ -422,7 +422,7 @@ where
                     .await
                     .with_context(|| "Failed to run TCP connection pool")
                     {
-                        error!("{:?}", e);
+                        error!("{:#}", e);
                     }
                 }
                 .instrument(Span::current()),
@@ -441,7 +441,7 @@ where
         tokio::spawn(
             async move {
                 if let Err(err) = ch.run().await {
-                    error!("{:?}", err);
+                    error!("{:#}", err);
                 }
             }
             .instrument(Span::current()),
@@ -476,11 +476,11 @@ impl<T: Transport> ControlChannel<T> {
                     match val {
                         Some(_) => {
                             if let Err(e) = self.conn.write_all(&cmd).await.with_context(||"Failed to write control cmds") {
-                                error!("{:?}", e);
+                                error!("{:#}", e);
                                 break;
                             }
                             if let Err(e) = self.conn.flush().await.with_context(|| "Failed to flush control cmds") {
-                                error!("{:?}", e);
+                                error!("{:#}", e);
                                 break;
                             }
                         }
@@ -522,7 +522,7 @@ fn tcp_listen_and_send(
         let l: TcpListener = match l {
             Ok(v) => v,
             Err(e) => {
-                error!("{:?}", e);
+                error!("{:#}", e);
                 return;
             }
         };
