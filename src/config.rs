@@ -23,6 +23,7 @@ impl Default for TransportType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+#[serde(deny_unknown_fields)]
 pub struct ClientServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
     pub service_type: ServiceType,
@@ -61,6 +62,7 @@ fn default_service_type() -> ServiceType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+#[serde(deny_unknown_fields)]
 pub struct ServerServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
     pub service_type: ServiceType,
@@ -80,6 +82,7 @@ impl ServerServiceConfig {
     }
 }
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct TlsConfig {
     pub hostname: Option<String>,
     pub trusted_root: Option<String>,
@@ -92,6 +95,7 @@ fn default_noise_pattern() -> String {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct NoiseConfig {
     #[serde(default = "default_noise_pattern")]
     pub pattern: String,
@@ -113,6 +117,7 @@ fn default_keepalive_interval() -> u64 {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
     pub transport_type: TransportType,
@@ -144,6 +149,7 @@ fn default_transport() -> TransportConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ClientConfig {
     pub remote_addr: String,
     pub default_token: Option<String>,
@@ -153,6 +159,7 @@ pub struct ClientConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct ServerConfig {
     pub bind_addr: String,
     pub default_token: Option<String>,
