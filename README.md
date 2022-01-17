@@ -1,6 +1,8 @@
 # rathole
 ![rathole-logo](./docs/img/rathole-logo.png)
 
+[![Join the chat at https://gitter.im/rapiz1/rathole](https://badges.gitter.im/rapiz1/rathole.svg)](https://gitter.im/rapiz1/rathole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [English](README.md) | [简体中文](README-zh.md)
 
 A secure, stable and high-performance reverse proxy for NAT traversal, written in Rust
