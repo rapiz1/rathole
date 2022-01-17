@@ -14,3 +14,11 @@ pub fn listen_backoff() -> ExponentialBackoff {
         ..Default::default()
     }
 }
+
+pub fn run_control_chan_backoff() -> ExponentialBackoff {
+    ExponentialBackoff {
+        max_elapsed_time: None,
+        max_interval: Duration::from_secs(1),
+        ..Default::default()
+    }
+}

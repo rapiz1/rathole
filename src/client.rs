@@ -8,6 +8,7 @@ use crate::protocol::{
 };
 use crate::transport::{SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
+use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
@@ -24,7 +25,7 @@ use crate::transport::NoiseTransport;
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
 
-use crate::constants::{UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
+use crate::constants::{run_control_chan_backoff, UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
 
 // The entrypoint of running a client
 pub async fn run_client(
@@ -485,6 +486,7 @@ impl ControlChannelHandle {
 
         tokio::spawn(
             async move {
+                let mut backoff = run_control_chan_backoff();
                 while let Err(err) = s
                     .run()
                     .await
@@ -494,9 +496,12 @@ impl ControlChannelHandle {
                         break;
                     }
 
-                    let duration = Duration::from_secs(1);
-                    error!("{:?}\n\nRetry in {:?}...", err, duration);
-                    time::sleep(duration).await;
+                    if let Some(duration) = backoff.next_backoff() {
+                        error!("{:?}\n\nRetry in {:?}...", err, duration);
+                        time::sleep(duration).await;
+                    } else {
+                        error!("{:?}. Break", err);
+                    }
                 }
             }
             .instrument(Span::current()),
