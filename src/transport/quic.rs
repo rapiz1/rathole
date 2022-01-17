@@ -1,6 +1,7 @@
 use std::borrow::{BorrowMut};
 use std::fmt::{Debug, Formatter};
-use std::io::{Error, IoSlice};
+use std::fs::File;
+use std::io::{BufReader, Error, IoSlice};
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -20,7 +21,6 @@ use rustls::server::WantsServerCert;
 use tokio::fs;
 use tokio::io::{AsyncWrite, ReadBuf};
 use tokio::net::{ToSocketAddrs, UdpSocket};
-use tokio_native_tls::native_tls::Certificate;
 use crate::transport::SocketOpts;
 
 pub const ALPN_QUIC_TUNNEL: &[&[u8]] = &[b"qt"];
@@ -200,17 +200,21 @@ impl Transport for QuicTransport {
 
         let client_crypto = match tls_config.trusted_root.as_ref() {
             Some(path) => {
-                let s = std::fs::read_to_string(path)
-                    .with_context(|| "Failed to read the `quic.trusted_root`")?;
-                let cert = Certificate::from_pem(s.as_bytes())
-                    .with_context(|| "Failed to read certificate from `quic.trusted_root`")?;
+                let certs: Result<Vec<Vec<u8>>> = read_all(
+                    &mut BufReader::new( &mut File::open(path)
+                        .with_context(|| "Failed to open the `quic.trusted_root`")?))
+                    .with_context(|| "Could not parse `quic.trusted_root`")?
+                    .into_iter().map(|item| match item {
+                    Item::X509Certificate(der_cert) => { Ok(der_cert)}
+                    Item::RSAKey(_) | Item::PKCS8Key(_) => {
+                        Err(anyhow!("`quic.trusted_root` should contain certificates, not keys"))}
+                })
+                    .collect();
 
                 let mut roots = rustls::RootCertStore::empty();
-
-                roots.add(&rustls::Certificate(
-                    cert.to_der()
-                        .with_context(|| "could not encode trust root as DER")?,
-                )).with_context(|| "adding trusted root cert to trust store")?;
+                for cert in certs?.into_iter() {
+                    roots.add(&rustls::Certificate(cert)).with_context(|| "adding trusted root cert to trust store")?;
+                }
 
                 let mut client_crypto = rustls::ClientConfig::builder()
                     .with_safe_defaults()
