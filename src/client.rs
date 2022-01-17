@@ -174,13 +174,13 @@ async fn do_data_channel_handshake<T: Transport>(
                 .connector
                 .connect(&args.remote_addr)
                 .await
-                .with_context(|| "Failed to connect to remote_addr")?;
+                .with_context(|| format!("Failed to connect to {}", &args.remote_addr))?;
             T::hint(&conn, args.socket_opts);
 
             Ok(conn)
         },
         |e, duration| {
-            warn!("{:?}. Retry in {:?}", e, duration);
+            warn!("{:#}. Retry in {:?}", e, duration);
         },
     )
     .await?;
@@ -220,7 +220,7 @@ async fn run_data_channel_for_tcp<T: Transport>(
 
     let mut local = TcpStream::connect(local_addr)
         .await
-        .with_context(|| "Failed to connect to local_addr")?;
+        .with_context(|| format!("Failed to connect to {}", local_addr))?;
     let _ = copy_bidirectional(&mut conn, &mut local).await;
     Ok(())
 }
@@ -295,7 +295,7 @@ async fn run_data_channel_for_udp<T: Transport>(conn: T::Stream, local_addr: &st
                     ));
                 }
                 Err(e) => {
-                    error!("{:?}", e);
+                    error!("{:#}", e);
                 }
             }
         }
@@ -383,7 +383,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
             .transport
             .connect(&self.remote_addr)
             .await
-            .with_context(|| format!("Failed to connect to the server: {}", &self.remote_addr))?;
+            .with_context(|| format!("Failed to connect to {}", &self.remote_addr))?;
         T::hint(&conn, SocketOpts::for_control_channel());
 
         // Send hello
@@ -448,7 +448,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
                             let args = data_ch_args.clone();
                             tokio::spawn(async move {
                                 if let Err(e) = run_data_channel(args).await.with_context(|| "Failed to run the data channel") {
-                                    error!("{:?}", e);
+                                    warn!("{:#}", e);
                                 }
                             }.instrument(Span::current()));
                         }
@@ -466,7 +466,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
 }
 
 impl ControlChannelHandle {
-    #[instrument(skip_all, fields(service = %service.name))]
+    #[instrument(name="handle", skip_all, fields(service = %service.name))]
     fn new<T: 'static + Transport>(
         service: ClientServiceConfig,
         remote_addr: String,
@@ -497,10 +497,10 @@ impl ControlChannelHandle {
                     }
 
                     if let Some(duration) = backoff.next_backoff() {
-                        error!("{:?}\n\nRetry in {:?}...", err, duration);
+                        error!("{:#}. Retry in {:?}...", err, duration);
                         time::sleep(duration).await;
                     } else {
-                        error!("{:?}. Break", err);
+                        error!("{:#}. Break", err);
                     }
                 }
             }

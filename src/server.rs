@@ -149,7 +149,7 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                                 // EMFILE. So sleep for a while and retry
                                 // TODO: Only sleep for EMFILE, ENFILE, ENOMEM, ENOBUFS
                                 if let Some(d) = backoff.next_backoff() {
-                                    error!("Failed to accept: {}. Retry in {:?}...", err, d);
+                                    error!("Failed to accept: {:#}. Retry in {:?}...", err, d);
                                     time::sleep(d).await;
                                 } else {
                                     // This branch will never be executed according to the current retry policy
@@ -172,11 +172,11 @@ impl<'a, T: 'static + Transport> Server<'a, T> {
                                             let control_channels = self.control_channels.clone();
                                             tokio::spawn(async move {
                                                 if let Err(err) = handle_connection(conn, services, control_channels).await {
-                                                    error!("{:?}", err);
+                                                    error!("{:#}", err);
                                                 }
-                                            }.instrument(info_span!("handle_connection", %addr)));
+                                            }.instrument(info_span!("connection", %addr)));
                                         }, Err(e) => {
-                                            error!("{:?}", e);
+                                            error!("{:#}", e);
                                         }
                                     }
                                 },
@@ -369,7 +369,7 @@ where
 {
     // Create a control channel handle, where the control channel handling task
     // and the connection pool task are created.
-    #[instrument(skip_all, fields(service = %service.name))]
+    #[instrument(name = "handle", skip_all, fields(service = %service.name))]
     fn new(conn: T::Stream, service: ServerServiceConfig) -> ControlChannelHandle<T> {
         // Create a shutdown channel
         let (shutdown_tx, shutdown_rx) = broadcast::channel::<bool>(1);
@@ -406,7 +406,7 @@ where
                     .await
                     .with_context(|| "Failed to run TCP connection pool")
                     {
-                        error!("{:?}", e);
+                        error!("{:#}", e);
                     }
                 }
                 .instrument(Span::current()),
@@ -422,7 +422,7 @@ where
                     .await
                     .with_context(|| "Failed to run TCP connection pool")
                     {
-                        error!("{:?}", e);
+                        error!("{:#}", e);
                     }
                 }
                 .instrument(Span::current()),
@@ -433,7 +433,6 @@ where
         let ch = ControlChannel::<T> {
             conn,
             shutdown_rx,
-            service: service.clone(),
             data_ch_req_rx,
         };
 
@@ -441,7 +440,7 @@ where
         tokio::spawn(
             async move {
                 if let Err(err) = ch.run().await {
-                    error!("{:?}", err);
+                    error!("{:#}", err);
                 }
             }
             .instrument(Span::current()),
@@ -458,14 +457,13 @@ where
 // Control channel, using T as the transport layer. P is TcpStream or UdpTraffic
 struct ControlChannel<T: Transport> {
     conn: T::Stream,                               // The connection of control channel
-    service: ServerServiceConfig,                  // A copy of the corresponding service config
     shutdown_rx: broadcast::Receiver<bool>,        // Receives the shutdown signal
     data_ch_req_rx: mpsc::UnboundedReceiver<bool>, // Receives visitor connections
 }
 
 impl<T: Transport> ControlChannel<T> {
     // Run a control channel
-    #[instrument(skip(self), fields(service = %self.service.name))]
+    #[instrument(skip_all)]
     async fn run(mut self) -> Result<()> {
         let cmd = bincode::serialize(&ControlChannelCmd::CreateDataChannel).unwrap();
 
@@ -476,11 +474,11 @@ impl<T: Transport> ControlChannel<T> {
                     match val {
                         Some(_) => {
                             if let Err(e) = self.conn.write_all(&cmd).await.with_context(||"Failed to write control cmds") {
-                                error!("{:?}", e);
+                                error!("{:#}", e);
                                 break;
                             }
                             if let Err(e) = self.conn.flush().await.with_context(|| "Failed to flush control cmds") {
-                                error!("{:?}", e);
+                                error!("{:#}", e);
                                 break;
                             }
                         }
@@ -522,7 +520,7 @@ fn tcp_listen_and_send(
         let l: TcpListener = match l {
             Ok(v) => v,
             Err(e) => {
-                error!("{:?}", e);
+                error!("{:#}", e);
                 return;
             }
         };

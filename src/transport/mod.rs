@@ -110,7 +110,7 @@ impl SocketOpts {
             if let Err(e) = try_set_tcp_keepalive(conn, keepalive_duration, keepalive_interval)
                 .with_context(|| "Failed to set keepalive")
             {
-                error!("{:?}", e);
+                error!("{:#}", e);
             }
         }
 
@@ -120,7 +120,7 @@ impl SocketOpts {
                 .set_nodelay(nodelay)
                 .with_context(|| "Failed to set nodelay")
             {
-                error!("{:?}", e);
+                error!("{:#}", e);
             }
         }
     }
