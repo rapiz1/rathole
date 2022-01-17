@@ -448,7 +448,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
                             let args = data_ch_args.clone();
                             tokio::spawn(async move {
                                 if let Err(e) = run_data_channel(args).await.with_context(|| "Failed to run the data channel") {
-                                    error!("{:#}", e);
+                                    warn!("{:#}", e);
                                 }
                             }.instrument(Span::current()));
                         }
