@@ -466,7 +466,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
 }
 
 impl ControlChannelHandle {
-    #[instrument(skip_all, fields(service = %service.name))]
+    #[instrument(name="handle", skip_all, fields(service = %service.name))]
     fn new<T: 'static + Transport>(
         service: ClientServiceConfig,
         remote_addr: String,
