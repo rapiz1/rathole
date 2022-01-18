@@ -5,7 +5,7 @@ default_token = "123"
 [client.transport]
 type = "tls"
 [client.transport.tls]
-trusted_root = "example/tls/ca-cert.pem"
+trusted_root = "examples/tls/ca-cert.pem"
 hostname = "0.0.0.0"
 
 [client.services.foo1]

@@ -5,7 +5,7 @@ default_token = "123"
 [server.transport]
 type = "tls"
 [server.transport.tls]
-pkcs12 = "example/tls/identity.pfx"
+pkcs12 = "examples/tls/identity.pfx"
 pkcs12_password = "1234"
 
 [server.services.foo1]
