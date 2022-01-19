@@ -2,10 +2,10 @@
 ![rathole-logo](./docs/img/rathole-logo.png)
 
 [![GitHub stars](https://img.shields.io/github/stars/rapiz1/rathole)](https://github.com/rapiz1/rathole/stargazers)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rapiz1/rathole)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rapiz1/rathole)](https://github.com/rapiz1/rathole/releases)
 ![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/rapiz1/rathole/Rust/main)
-![GitHub all releases](https://img.shields.io/github/downloads/rapiz1/rathole/total)
-![Docker Pulls](https://img.shields.io/docker/pulls/rapiz1/rathole)
+[![GitHub all releases](https://img.shields.io/github/downloads/rapiz1/rathole/total)](https://github.com/rapiz1/rathole/releases)
+[![Docker Pulls](https://img.shields.io/docker/pulls/rapiz1/rathole)](https://hub.docker.com/r/rapiz1/rathole)
 
 [English](README.md) | [简体中文](README-zh.md)
 
