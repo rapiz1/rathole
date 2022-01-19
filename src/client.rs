@@ -17,7 +17,7 @@ use std::sync::Arc;
 use tokio::io::{self, copy_bidirectional, AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpStream, UdpSocket};
 use tokio::sync::{broadcast, mpsc, oneshot, RwLock};
-use tokio::time::{self, Duration};
+use tokio::time::{self, Duration, Instant};
 use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 
 #[cfg(feature = "noise")]
@@ -487,6 +487,8 @@ impl ControlChannelHandle {
         tokio::spawn(
             async move {
                 let mut backoff = run_control_chan_backoff();
+                let mut start = Instant::now();
+
                 while let Err(err) = s
                     .run()
                     .await
@@ -496,12 +498,20 @@ impl ControlChannelHandle {
                         break;
                     }
 
-                    if let Some(duration) = backoff.next_backoff() {
+                    if start.elapsed() > Duration::from_secs(3) {
+                        // The client runs for at least 3 secs and then disconnects
+                        // Retry immediately
+                        backoff.reset();
+                        error!("{:#}. Retry...", err);
+                    } else if let Some(duration) = backoff.next_backoff() {
                         error!("{:#}. Retry in {:?}...", err, duration);
                         time::sleep(duration).await;
                     } else {
-                        error!("{:#}. Break", err);
+                        // Should never reach
+                        panic!("{:#}. Break", err);
                     }
+
+                    start = Instant::now();
                 }
             }
             .instrument(Span::current()),

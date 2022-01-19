@@ -17,6 +17,7 @@ pub fn listen_backoff() -> ExponentialBackoff {
 
 pub fn run_control_chan_backoff() -> ExponentialBackoff {
     ExponentialBackoff {
+        randomization_factor: 0.1,
         max_elapsed_time: None,
         max_interval: Duration::from_secs(1),
         ..Default::default()
