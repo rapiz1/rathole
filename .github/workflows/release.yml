@@ -77,9 +77,13 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get install llvm
     - name: LLVM Strip
-      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
+      if: matrix.os == 'ubuntu-latest'
       continue-on-error: true
       run: llvm-strip target/${{ matrix.target }}/release/${{ matrix.exe }}
+    - name: MacOS Strip
+      if: matrix.os == 'macos-latest'
+      continue-on-error: true
+      run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
     - name: Run UPX
       # Upx may not support some platforms. Ignore the errors
       continue-on-error: true
