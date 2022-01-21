@@ -67,9 +67,6 @@ jobs:
       with:
         profile: minimal
         toolchain: stable
-    - uses: Swatinem/rust-cache@v1
-      with:
-        key: ${{ matrix.target }}
     - name: Install cross
       run: cargo install --version 0.1.16 cross
     - name: Run tests
