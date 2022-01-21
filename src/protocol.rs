@@ -1,6 +1,6 @@
 pub const HASH_WIDTH_IN_BYTES: usize = 32;
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use bytes::{Bytes, BytesMut};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -180,6 +180,24 @@ pub async fn read_hello<T: AsyncRead + AsyncWrite + Unpin>(conn: &mut T) -> Resu
         .await
         .with_context(|| "Failed to read hello")?;
     let hello = bincode::deserialize(&buf).with_context(|| "Failed to deserialize hello")?;
+
+    match hello {
+        Hello::ControlChannelHello(v, _) => {
+            if v != CURRENT_PROTO_VERSION {
+                bail!(
+                    "Protocol version mismatched. Expected {}, got {}. Please update `rathole`.",
+                    CURRENT_PROTO_VERSION,
+                    v
+                );
+            }
+        }
+        Hello::DataChannelHello(v, _) => {
+            // This assert should not fail because the version has already been
+            // checked by ControlChannelHello.
+            assert_eq!(v, CURRENT_PROTO_VERSION);
+        }
+    }
+
     Ok(hello)
 }
 
