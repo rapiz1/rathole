@@ -34,10 +34,10 @@ jobs:
             target: armv7-unknown-linux-musleabihf
             exe: rathole
           - os: ubuntu-latest
-            target: mips-unknown-linux-musl
+            target: mips-unknown-linux-gnu
             exe: rathole
           - os: ubuntu-latest
-            target: mipsel-unknown-linux-musl
+            target: mipsel-unknown-linux-gnu
             exe: rathole
           - os: ubuntu-latest
             target: mips64-unknown-linux-gnuabi64
