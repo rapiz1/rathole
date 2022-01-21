@@ -1,4 +1,4 @@
-use crate::config::{ClientConfig, ClientServiceConfig, Config, TransportType};
+use crate::config::{ClientConfig, ClientServiceConfig, Config, ServiceType, TransportType};
 use crate::config_watcher::ServiceChange;
 use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
@@ -150,9 +150,9 @@ impl<'a, T: 'static + Transport> Client<'a, T> {
 struct RunDataChannelArgs<T: Transport> {
     session_key: Nonce,
     remote_addr: String,
-    local_addr: String,
     connector: Arc<T>,
     socket_opts: SocketOpts,
+    service: ClientServiceConfig,
 }
 
 async fn do_data_channel_handshake<T: Transport>(
@@ -201,10 +201,16 @@ async fn run_data_channel<T: Transport>(args: Arc<RunDataChannelArgs<T>>) -> Res
     // Forward
     match read_data_cmd(&mut conn).await? {
         DataChannelCmd::StartForwardTcp => {
-            run_data_channel_for_tcp::<T>(conn, &args.local_addr).await?;
+            if args.service.service_type != ServiceType::Tcp {
+                bail!("Expect TCP traffic. Please check the configuration.")
+            }
+            run_data_channel_for_tcp::<T>(conn, &args.service.local_addr).await?;
         }
         DataChannelCmd::StartForwardUdp => {
-            run_data_channel_for_udp::<T>(conn, &args.local_addr).await?;
+            if args.service.service_type != ServiceType::Udp {
+                bail!("Expect UDP traffic. Please check the configuration.")
+            }
+            run_data_channel_for_udp::<T>(conn, &args.service.local_addr).await?;
         }
     }
     Ok(())
@@ -427,15 +433,14 @@ impl<T: 'static + Transport> ControlChannel<T> {
         info!("Control channel established");
 
         let remote_addr = self.remote_addr.clone();
-        let local_addr = self.service.local_addr.clone();
         // Socket options for the data channel
         let socket_opts = SocketOpts::from_client_cfg(&self.service);
         let data_ch_args = Arc::new(RunDataChannelArgs {
             session_key,
             remote_addr,
-            local_addr,
             connector: self.transport.clone(),
             socket_opts,
+            service: self.service.clone(),
         });
 
         loop {
