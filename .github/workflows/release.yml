@@ -76,10 +76,13 @@ jobs:
       run: cross test --release --target ${{ matrix.target }} --verbose
     - name: Build release
       run: cross build --release --target ${{ matrix.target }}
-    - name: Strip
+    - name: Install LLVM Strip
+      if: matrix.os == 'ubuntu-latest'
+      run: sudo apt-get install llvm
+    - name: LLVM Strip
       if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
       continue-on-error: true
-      run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
+      run: llvm-strip target/${{ matrix.target }}/release/${{ matrix.exe }}
     - name: Run UPX
       # Upx may not support some platforms. Ignore the errors
       continue-on-error: true
