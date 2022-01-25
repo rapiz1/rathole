@@ -1,4 +1,5 @@
 # rathole
+
 ![rathole-logo](./docs/img/rathole-logo.png)
 
 [![GitHub stars](https://img.shields.io/github/stars/rapiz1/rathole)](https://github.com/rapiz1/rathole/stargazers)
@@ -44,6 +45,7 @@ rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://g
 1. 在有一个公网 IP 的服务器上
 
 创建 `server.toml`，内容如下，并根据你的需要调整。
+
 ```toml
 # server.toml
 [server]
@@ -55,6 +57,7 @@ bind_addr = "0.0.0.0:5202" # `5202` 配置了将 `my_nas_ssh` 暴露给互联网
 ```
 
 然后运行:
+
 ```bash
 ./rathole server.toml
 ```
@@ -73,26 +76,29 @@ local_addr = "127.0.0.1:22" # 需要被转发的服务的地址
 ```
 
 然后运行：
+
 ```bash
 ./rathole client.toml
 ```
 
 3. 现在 `rathole` 客户端会连接运行在 `myserver.com:2333`的 `rathole` 服务器，任何到 `myserver.com:5202` 的流量将被转发到客户端所在主机的 `22` 端口。
 
-所以你可以 `ssh myserver.com:5202` 来 ssh 到你的NAS。
+所以你可以 `ssh myserver.com:5202` 来 ssh 到你的 NAS。
 
 [Systemd examples](./examples/systemd) 中提供了一些让 `rathole` 在 Linux 上作为后台服务运行的配置示例。
 
 ## Configuration
+
 如果只有一个 `[server]` 和 `[client]` 块存在的话，`rathole` 可以根据配置文件的内容自动决定在服务器模式或客户端模式下运行，就像 [Quickstart](#Quickstart) 中的例子。
 
 但 `[client]` 和 `[server]` 块也可以放在一个文件中。然后在服务器端，运行 `rathole --server config.toml`。在客户端，运行 `rathole --client config.toml` 来明确告诉 `rathole` 运行模式。
 
 **推荐首先查看 [examples](./examples) 中的配置示例来快速理解配置格式**，如果有不清楚的地方再查阅完整配置格式。
 
-关于如何配置 Noise Protocol 和 TLS 来进行加密传输，参见 [Security](./docs/security.md)。
+关于如何配置 Noise Protocol 和 TLS 来进行加密传输，参见 [Security](./docs/transport.md)。
 
 下面是完整的配置格式。
+
 ```toml
 [client]
 remote_addr = "example.com:2333" # Necessary. The address of the server
@@ -108,7 +114,7 @@ keepalive_interval = 5 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
 hostname = "example.com" # Optional. The hostname that the client uses to validate the certificate. If not set, fallback to `client.remote_addr`
 
-[client.transport.noise] # Noise protocol. See `docs/security.md` for further explanation
+[client.transport.noise] # Noise protocol. See `docs/transport.md` for further explanation
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
@@ -122,11 +128,11 @@ local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs
 local_addr = "127.0.0.1:1082"
 
 [server]
-bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change. 
+bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change.
 default_token = "default_token_if_not_specify" # Optional
 
 [server.transport] # Same as `[client.transport]`
-type = "tcp" 
+type = "tcp"
 nodelay = false
 keepalive_secs = 10
 keepalive_interval = 5
@@ -137,24 +143,26 @@ pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 
 [server.transport.noise] # Same as `[client.transport.noise]`
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
-local_private_key = "key_encoded_in_base64" 
-remote_public_key = "key_encoded_in_base64" 
+local_private_key = "key_encoded_in_base64"
+remote_public_key = "key_encoded_in_base64"
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
 token = "whatever" # Necessary if `server.default_token` not set
-bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change. 
+bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change.
 
-[server.services.service2] 
+[server.services.service2]
 bind_addr = "0.0.0.1:8082"
 ```
 
 ### Logging
+
 `rathole`，像许多其他 Rust 程序一样，使用环境变量来控制日志级别。
 
 支持的 Logging Level 有 `info`, `warn`, `error`, `debug`, `trace`
 
 比如将日志级别设置为 `error`:
+
 ```
 RUST_LOG=error ./rathole config.toml
 ```
@@ -177,9 +185,10 @@ rathole 的延迟与 [frp](https://github.com/fatedier/frp) 相近，在高并�
 ## Development Status
 
 `rathole` 正在积极开发中
-- [x] 支持TLS
-- [x] 支持UDP
+
+- [x] 支持 TLS
+- [x] 支持 UDP
 - [x] 热重载
-- [ ] 用于配置的HTTP APIs
+- [ ] 用于配置的 HTTP APIs
 
 [Out of Scope](./docs/out-of-scope.md) 列举了没有计划开发的特性并说明了原因。

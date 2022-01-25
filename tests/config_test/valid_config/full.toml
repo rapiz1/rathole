@@ -9,7 +9,7 @@ type = "tcp" # Optional. Possible values: ["tcp", "tls"]. Default: "tcp"
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
 hostname = "example.com" # Optional. The hostname that the client uses to validate the certificate. If not set, fallback to `client.remote_addr`
 
-[client.transport.noise] # Noise protocol. See `docs/security.md` for further explanation
+[client.transport.noise] # Noise protocol. See `docs/transport.md` for further explanation
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional

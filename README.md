@@ -1,4 +1,5 @@
 # rathole
+
 ![rathole-logo](./docs/img/rathole-logo.png)
 
 [![GitHub stars](https://img.shields.io/github/stars/rapiz1/rathole)](https://github.com/rapiz1/rathole/stargazers)
@@ -38,13 +39,14 @@ A full-powered `rathole` can be obtained from the [release](https://github.com/r
 
 The usage of `rathole` is very similar to frp. If you have experience with the latter, then the configuration is very easy for you. The only difference is that configuration of a service is split into the client side and the server side, and a token is mandatory.
 
-To use `rathole`, you need a server with a public IP, and a device behind the NAT, where some services that need to be exposed to the Internet. 
+To use `rathole`, you need a server with a public IP, and a device behind the NAT, where some services that need to be exposed to the Internet.
 
 Assuming you have a NAS at home behind the NAT, and want to expose its ssh service to the Internet:
 
 1. On the server which has a public IP
 
 Create `server.toml` with the following content and accommodate it to your needs.
+
 ```toml
 # server.toml
 [server]
@@ -56,6 +58,7 @@ bind_addr = "0.0.0.0:5202" # `5202` specifies the port that exposes `my_nas_ssh`
 ```
 
 Then run:
+
 ```bash
 ./rathole server.toml
 ```
@@ -63,6 +66,7 @@ Then run:
 2. On the host which is behind the NAT (your NAS)
 
 Create `client.toml` with the following content and accommodate it to your needs.
+
 ```toml
 # client.toml
 [client]
@@ -74,6 +78,7 @@ local_addr = "127.0.0.1:22" # The address of the service that needs to be forwar
 ```
 
 Then run:
+
 ```bash
 ./rathole client.toml
 ```
@@ -82,18 +87,20 @@ Then run:
 
 So you can `ssh myserver.com:5202` to ssh to your NAS.
 
-To run `rathole` run as a background service on Linux, checkout the [systemd examples](./examples/systemd). 
+To run `rathole` run as a background service on Linux, checkout the [systemd examples](./examples/systemd).
 
 ## Configuration
+
 `rathole` can automatically determine to run in the server mode or the client mode, according to the content of the configuration file, if only one of `[server]` and `[client]` block is present, like the example in [Quickstart](#Quickstart).
 
 But the `[client]` and `[server]` block can also be put in one file. Then on the server side, run `rathole --server config.toml` and on the client side, run `rathole --client config.toml` to explicitly tell `rathole` the running mode.
 
 Before heading to the full configuration specification, it's recommend to skim [the configuration examples](./examples) to get a feeling of the configuration format.
 
-See [Security](./docs/security.md) for more details about encryption and the `transport` block.
+See [Security](./docs/transport.md) for more details about encryption and the `transport` block.
 
 Here is the full configuration specification:
+
 ```toml
 [client]
 remote_addr = "example.com:2333" # Necessary. The address of the server
@@ -109,7 +116,7 @@ keepalive_interval = 5 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
 hostname = "example.com" # Optional. The hostname that the client uses to validate the certificate. If not set, fallback to `client.remote_addr`
 
-[client.transport.noise] # Noise protocol. See `docs/security.md` for further explanation
+[client.transport.noise] # Noise protocol. See `docs/transport.md` for further explanation
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
@@ -124,11 +131,11 @@ nodelay = false # Optional. Determine whether to enable TCP_NODELAY for data tra
 local_addr = "127.0.0.1:1082"
 
 [server]
-bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change. 
+bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change.
 default_token = "default_token_if_not_specify" # Optional
 
 [server.transport] # Same as `[client.transport]`
-type = "tcp" 
+type = "tcp"
 nodelay = false
 keepalive_secs = 10
 keepalive_interval = 5
@@ -139,25 +146,27 @@ pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 
 [server.transport.noise] # Same as `[client.transport.noise]`
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
-local_private_key = "key_encoded_in_base64" 
-remote_public_key = "key_encoded_in_base64" 
+local_private_key = "key_encoded_in_base64"
+remote_public_key = "key_encoded_in_base64"
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
 token = "whatever" # Necessary if `server.default_token` not set
-bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change. 
+bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change.
 nodelay = false # Optional. Same as the client
 
-[server.services.service2] 
+[server.services.service2]
 bind_addr = "0.0.0.1:8082"
 ```
 
 ### Logging
+
 `rathole`, like many other Rust programs, use environment variables to control the logging level. `info`, `warn`, `error`, `debug`, `trace` are available.
 
 ```
 RUST_LOG=error ./rathole config.toml
 ```
+
 will run `rathole` with only error level logging.
 
 If `RUST_LOG` is not present, the default logging level is `info`.
@@ -178,6 +187,7 @@ For more details, see the separate page [Benchmark](./docs/benchmark.md).
 ## Development Status
 
 `rathole` is under active development. A load of features is on the way:
+
 - [x] TLS support
 - [x] UDP support
 - [x] Hot reloading
