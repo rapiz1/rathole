@@ -7,7 +7,7 @@ The directory lists some systemd unit files for example, which can be used to ru
 
 For the naming of the example, `ratholes` stands for `rathole --server`, and `ratholec` stands for `rathole --client`, `rathole` is just `rathole`.
 
-Assuming that `rathole` is installed in `/usr/local/bin/rathole`, and the configuration file is in `/etc/rathole/app1.toml`, the following steps shows how to run an instance of `rathole --server`.
+Assuming that `rathole` is installed in `/usr/bin/rathole`, and the configuration file is in `/etc/rathole/app1.toml`, the following steps shows how to run an instance of `rathole --server`.
 
 1. Create a service file.
 
