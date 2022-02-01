@@ -1,6 +1,7 @@
 use crate::config::{Config, ServerConfig, ServerServiceConfig, ServiceType, TransportType};
 use crate::config_watcher::ServiceChange;
 use crate::constants::{listen_backoff, UDP_BUFFER_SIZE};
+use crate::helper::retry_notify;
 use crate::multi_map::MultiMap;
 use crate::protocol::Hello::{ControlChannelHello, DataChannelHello};
 use crate::protocol::{
@@ -508,17 +509,21 @@ fn tcp_listen_and_send(
     let (tx, rx) = mpsc::channel(CHAN_SIZE);
 
     tokio::spawn(async move {
-        // FIXME: Respect shutdown signal
-        let l = backoff::future::retry_notify(listen_backoff(), || async {
-            Ok(TcpListener::bind(&addr).await?)
+        let l = retry_notify!(listen_backoff(),  {
+            match shutdown_rx.try_recv() {
+                Err(broadcast::error::TryRecvError::Closed) => Ok(None),
+                _ => TcpListener::bind(&addr).await.map(Some)
+            }
         }, |e, duration| {
             error!("{:#}. Retry in {:?}", e, duration);
         })
-        .await
         .with_context(|| "Failed to listen for the service");
 
         let l: TcpListener = match l {
-            Ok(v) => v,
+            Ok(v) => match v {
+                Some(v) => v,
+                None => return
+            },
             Err(e) => {
                 error!("{:#}", e);
                 return;
@@ -623,20 +628,27 @@ async fn run_udp_connection_pool<T: Transport>(
 ) -> Result<()> {
     // TODO: Load balance
 
-    // FIXME: Respect shutdown signal
-    let l: UdpSocket = backoff::future::retry_notify(
+    let l = retry_notify!(
         listen_backoff(),
-        || async {
-            Ok(UdpSocket::bind(&bind_addr)
-                .await
-                .with_context(|| "Failed to listen for the service")?)
+        {
+            match shutdown_rx.try_recv() {
+                Err(broadcast::error::TryRecvError::Closed) => Ok(None),
+                _ => UdpSocket::bind(&bind_addr).await.map(Some),
+            }
         },
         |e, duration| {
             warn!("{:#}. Retry in {:?}", e, duration);
-        },
+        }
     )
-    .await
-    .with_context(|| "Failed to listen for the service")?;
+    .with_context(|| "Failed to listen for the service");
+
+    let l = match l {
+        Ok(v) => match v {
+            Some(l) => l,
+            None => return Ok(()),
+        },
+        Err(e) => return Err(e),
+    };
 
     info!("Listening at {}", &bind_addr);
 

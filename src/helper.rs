@@ -51,3 +51,24 @@ pub async fn udp_connect<A: ToSocketAddrs>(addr: A) -> Result<UdpSocket> {
     s.connect(addr).await?;
     Ok(s)
 }
+
+/// Almost same as backoff::future::retry_notify
+/// But directly expands to a loop
+macro_rules! retry_notify {
+    ($b: expr, $func: expr, $notify: expr) => {
+        loop {
+            match $func {
+                Ok(v) => break Ok(v),
+                Err(e) => match $b.next_backoff() {
+                    Some(duration) => {
+                        $notify(e, duration);
+                        tokio::time::sleep(duration).await;
+                    }
+                    None => break Err(e),
+                },
+            }
+        }
+    };
+}
+
+pub(crate) use retry_notify;
