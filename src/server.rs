@@ -512,7 +512,7 @@ fn tcp_listen_and_send(
         let l = backoff::future::retry_notify(listen_backoff(), || async {
             Ok(TcpListener::bind(&addr).await?)
         }, |e, duration| {
-            error!("{:?}. Retry in {:?}", e, duration);
+            error!("{:#}. Retry in {:?}", e, duration);
         })
         .await
         .with_context(|| "Failed to listen for the service");
@@ -632,7 +632,7 @@ async fn run_udp_connection_pool<T: Transport>(
                 .with_context(|| "Failed to listen for the service")?)
         },
         |e, duration| {
-            warn!("{:?}. Retry in {:?}", e, duration);
+            warn!("{:#}. Retry in {:?}", e, duration);
         },
     )
     .await
