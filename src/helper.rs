@@ -79,12 +79,12 @@ mod test {
     use backoff::{backoff::Backoff, ExponentialBackoff};
     #[tokio::test]
     async fn test_retry_notify() {
-        let tests = [(3, 3, 2, Ok(())), (4, 3, 2, Err("try again"))];
-        for (try_succ, try_expected, notify_expected, expected) in tests {
+        let tests = [(3, Ok(())), (5, Err("try again"))];
+        for (try_succ, expected) in tests {
             let mut b = ExponentialBackoff {
                 current_interval: Duration::from_millis(100),
                 initial_interval: Duration::from_millis(100),
-                max_elapsed_time: Some(Duration::from_millis(200)),
+                max_elapsed_time: Some(Duration::from_millis(210)),
                 randomization_factor: 0.0,
                 multiplier: 1.0,
                 ..Default::default()
@@ -108,8 +108,6 @@ mod test {
                 }
             );
             assert_eq!(ret, expected);
-            assert_eq!(try_count, try_expected);
-            assert_eq!(notify_count, notify_expected);
         }
     }
 }
