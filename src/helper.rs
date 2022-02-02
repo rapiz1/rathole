@@ -51,3 +51,65 @@ pub async fn udp_connect<A: ToSocketAddrs>(addr: A) -> Result<UdpSocket> {
     s.connect(addr).await?;
     Ok(s)
 }
+
+/// Almost same as backoff::future::retry_notify
+/// But directly expands to a loop
+macro_rules! retry_notify {
+    ($b: expr, $func: expr, $notify: expr) => {
+        loop {
+            match $func {
+                Ok(v) => break Ok(v),
+                Err(e) => match $b.next_backoff() {
+                    Some(duration) => {
+                        $notify(e, duration);
+                        tokio::time::sleep(duration).await;
+                    }
+                    None => break Err(e),
+                },
+            }
+        }
+    };
+}
+
+pub(crate) use retry_notify;
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use backoff::{backoff::Backoff, ExponentialBackoff};
+    #[tokio::test]
+    async fn test_retry_notify() {
+        let tests = [(3, 3, 2, Ok(())), (4, 3, 2, Err("try again"))];
+        for (try_succ, try_expected, notify_expected, expected) in tests {
+            let mut b = ExponentialBackoff {
+                current_interval: Duration::from_millis(100),
+                initial_interval: Duration::from_millis(100),
+                max_elapsed_time: Some(Duration::from_millis(200)),
+                randomization_factor: 0.0,
+                multiplier: 1.0,
+                ..Default::default()
+            };
+
+            let mut notify_count = 0;
+            let mut try_count = 0;
+            let ret: Result<(), &str> = retry_notify!(
+                b,
+                {
+                    try_count += 1;
+                    if try_count == try_succ {
+                        Ok(())
+                    } else {
+                        Err("try again")
+                    }
+                },
+                |e, duration| {
+                    notify_count += 1;
+                    println!("{}: {}, {:?}", notify_count, e, duration);
+                }
+            );
+            assert_eq!(ret, expected);
+            assert_eq!(try_count, try_expected);
+            assert_eq!(notify_count, notify_expected);
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use crate::config::{ClientConfig, ClientServiceConfig, Config, ServiceType, TransportType};
 use crate::config_watcher::ServiceChange;
-use crate::helper::udp_connect;
+use crate::helper::{retry_notify, udp_connect};
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
@@ -159,31 +159,33 @@ async fn do_data_channel_handshake<T: Transport>(
     args: Arc<RunDataChannelArgs<T>>,
 ) -> Result<T::Stream> {
     // Retry at least every 100ms, at most for 10 seconds
-    let backoff = ExponentialBackoff {
+    let mut backoff = ExponentialBackoff {
         max_interval: Duration::from_millis(100),
         max_elapsed_time: Some(Duration::from_secs(10)),
         ..Default::default()
     };
 
-    // FIXME: Respect control channel shutdown here
     // Connect to remote_addr
-    let mut conn: T::Stream = backoff::future::retry_notify(
+    let mut conn: T::Stream = retry_notify!(
         backoff,
-        || async {
-            let conn = args
+        {
+            match args
                 .connector
                 .connect(&args.remote_addr)
                 .await
-                .with_context(|| format!("Failed to connect to {}", &args.remote_addr))?;
-            T::hint(&conn, args.socket_opts);
-
-            Ok(conn)
+                .with_context(|| format!("Failed to connect to {}", &args.remote_addr))
+            {
+                Ok(conn) => {
+                    T::hint(&conn, args.socket_opts);
+                    Ok(conn)
+                }
+                Err(e) => Err(e),
+            }
         },
         |e, duration| {
             warn!("{:#}. Retry in {:?}", e, duration);
-        },
-    )
-    .await?;
+        }
+    )?;
 
     // Send nonce
     let v: &[u8; HASH_WIDTH_IN_BYTES] = args.session_key[..].try_into().unwrap();

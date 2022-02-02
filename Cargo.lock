@@ -122,12 +122,9 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fe17f59a06fe8b87a6fc8bf53bb70b3aba76d7685f432487a68cd5552853625"
 dependencies = [
- "futures-core",
  "getrandom 0.2.4",
  "instant",
- "pin-project",
  "rand",
- "tokio",
 ]
 
 [[package]]
