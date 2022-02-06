@@ -1,8 +1,11 @@
-use std::{net::SocketAddr, time::Duration};
-
 use anyhow::{anyhow, Result};
+use backoff::{backoff::Backoff, Notify};
 use socket2::{SockRef, TcpKeepalive};
-use tokio::net::{lookup_host, TcpStream, ToSocketAddrs, UdpSocket};
+use std::{future::Future, net::SocketAddr, time::Duration};
+use tokio::{
+    net::{lookup_host, TcpStream, ToSocketAddrs, UdpSocket},
+    sync::broadcast,
+};
 use tracing::trace;
 
 // Tokio hesitates to expose this option...So we have to do it on our own :(
@@ -52,62 +55,26 @@ pub async fn udp_connect<A: ToSocketAddrs>(addr: A) -> Result<UdpSocket> {
     Ok(s)
 }
 
-/// Almost same as backoff::future::retry_notify
-/// But directly expands to a loop
-macro_rules! retry_notify {
-    ($b: expr, $func: expr, $notify: expr) => {
-        loop {
-            match $func {
-                Ok(v) => break Ok(v),
-                Err(e) => match $b.next_backoff() {
-                    Some(duration) => {
-                        $notify(e, duration);
-                        tokio::time::sleep(duration).await;
-                    }
-                    None => break Err(e),
-                },
-            }
+// Wrapper of retry_notify
+pub async fn retry_notify_with_deadline<I, E, Fn, Fut, B, N>(
+    backoff: B,
+    operation: Fn,
+    notify: N,
+    deadline: &mut broadcast::Receiver<bool>,
+) -> Result<I>
+where
+    E: std::error::Error + Send + Sync + 'static,
+    B: Backoff,
+    Fn: FnMut() -> Fut,
+    Fut: Future<Output = std::result::Result<I, backoff::Error<E>>>,
+    N: Notify<E>,
+{
+    tokio::select! {
+        v = backoff::future::retry_notify(backoff, operation, notify) => {
+            v.map_err(anyhow::Error::new)
         }
-    };
-}
-
-pub(crate) use retry_notify;
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use backoff::{backoff::Backoff, ExponentialBackoff};
-    #[tokio::test]
-    async fn test_retry_notify() {
-        let tests = [(3, Ok(())), (5, Err("try again"))];
-        for (try_succ, expected) in tests {
-            let mut b = ExponentialBackoff {
-                current_interval: Duration::from_millis(100),
-                initial_interval: Duration::from_millis(100),
-                max_elapsed_time: Some(Duration::from_millis(210)),
-                randomization_factor: 0.0,
-                multiplier: 1.0,
-                ..Default::default()
-            };
-
-            let mut notify_count = 0;
-            let mut try_count = 0;
-            let ret: Result<(), &str> = retry_notify!(
-                b,
-                {
-                    try_count += 1;
-                    if try_count == try_succ {
-                        Ok(())
-                    } else {
-                        Err("try again")
-                    }
-                },
-                |e, duration| {
-                    notify_count += 1;
-                    println!("{}: {}, {:?}", notify_count, e, duration);
-                }
-            );
-            assert_eq!(ret, expected);
+        _ = deadline.recv() => {
+            Err(anyhow!("shutdown"))
         }
     }
 }
