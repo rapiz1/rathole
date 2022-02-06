@@ -1,6 +1,6 @@
 use crate::config::{ClientConfig, ClientServiceConfig, Config, ServiceType, TransportType};
 use crate::config_watcher::ServiceChange;
-use crate::helper::{retry_notify, udp_connect};
+use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
 use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
@@ -8,8 +8,8 @@ use crate::protocol::{
 };
 use crate::transport::{SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
-use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
+use backoff::{backoff::Backoff, future::retry_notify};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -159,21 +159,22 @@ async fn do_data_channel_handshake<T: Transport>(
     args: Arc<RunDataChannelArgs<T>>,
 ) -> Result<T::Stream> {
     // Retry at least every 100ms, at most for 10 seconds
-    let mut backoff = ExponentialBackoff {
+    let backoff = ExponentialBackoff {
         max_interval: Duration::from_millis(100),
         max_elapsed_time: Some(Duration::from_secs(10)),
         ..Default::default()
     };
 
     // Connect to remote_addr
-    let mut conn: T::Stream = retry_notify!(
+    let mut conn: T::Stream = retry_notify(
         backoff,
-        {
+        || async {
             match args
                 .connector
                 .connect(&args.remote_addr)
                 .await
                 .with_context(|| format!("Failed to connect to {}", &args.remote_addr))
+                .map_err(backoff::Error::transient)
             {
                 Ok(conn) => {
                     T::hint(&conn, args.socket_opts);
@@ -184,8 +185,9 @@ async fn do_data_channel_handshake<T: Transport>(
         },
         |e, duration| {
             warn!("{:#}. Retry in {:?}", e, duration);
-        }
-    )?;
+        },
+    )
+    .await?;
 
     // Send nonce
     let v: &[u8; HASH_WIDTH_IN_BYTES] = args.session_key[..].try_into().unwrap();

@@ -57,7 +57,7 @@ bincode = "1"
 lazy_static = "1.4"
 hex = "0.4"
 rand = "0.8"
-backoff = "0.3"
+backoff = { version = "0.4", features = ["tokio"] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
 socket2 = { version = "0.4", features = ["all"] }
