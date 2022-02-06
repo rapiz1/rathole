@@ -57,10 +57,10 @@ jobs:
           profile: minimal
           toolchain: stable
       - uses: Swatinem/rust-cache@v1
-      - name: Build release
-        run: cargo build --release
+      - name: Build
+        run: cargo build
       - name: Run tests
-        run: cargo test --release --verbose
+        run: cargo test --verbose
       - uses: actions/upload-artifact@v2
         with:
           name: rathole-${{ matrix.target }}
