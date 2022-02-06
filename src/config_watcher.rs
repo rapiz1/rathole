@@ -138,19 +138,22 @@ async fn config_watcher(
     event_tx: mpsc::UnboundedSender<ConfigChange>,
     mut old: Config,
 ) -> Result<()> {
-    let (fevent_tx, mut fevent_rx) = mpsc::unbounded_channel();
-
+    let (fevent_tx, mut fevent_rx) = mpsc::channel(16);
+    let parent_path = path.parent().expect("config file should have a parent dir");
+    let path_clone = path.clone();
     let mut watcher =
         notify::recommended_watcher(move |res: Result<notify::Event, _>| match res {
             Ok(e) => {
-                if let EventKind::Modify(ModifyKind::Data(_)) = e.kind {
+                if matches!(e.kind, EventKind::Modify(ModifyKind::Data(_)))
+                    && e.paths.get(0).map(|x| x.file_name()).flatten() == path_clone.file_name()
+                {
                     let _ = fevent_tx.send(true);
                 }
             }
             Err(e) => error!("watch error: {:#}", e),
         })?;
 
-    watcher.watch(&path, RecursiveMode::NonRecursive)?;
+    watcher.watch(parent_path, RecursiveMode::NonRecursive)?;
     info!("Start watching the config");
 
     loop {
