@@ -111,7 +111,9 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
     }
 
     let _ = shutdown_tx.send(true);
-
+    if let Some((h,_)) = last_instance{
+        h.await?;
+    }
     Ok(())
 }
 

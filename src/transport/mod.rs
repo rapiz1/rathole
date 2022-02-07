@@ -27,9 +27,10 @@ pub trait Transport: Debug + Send + Sync {
     /// Provide the transport with socket options, which can be handled at the need of the transport
     fn hint(conn: &Self::Stream, opts: SocketOpts);
     async fn bind<T: ToSocketAddrs + Send + Sync>(&self, addr: T) -> Result<Self::Acceptor>;
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)>;
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)>;
     async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream>;
     async fn connect(&self, addr: &str) -> Result<Self::Stream>;
+    async fn close(&self, a: Self::Acceptor);
 }
 
 mod tcp;
@@ -43,6 +44,11 @@ pub use tls::TlsTransport;
 mod noise;
 #[cfg(feature = "noise")]
 pub use noise::NoiseTransport;
+
+#[cfg(feature = "quic")]
+mod quic;
+#[cfg(feature = "quic")]
+pub use quic::QuicTransport;
 
 #[derive(Debug, Clone, Copy)]
 struct Keepalive {

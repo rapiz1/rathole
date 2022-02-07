@@ -77,7 +77,7 @@ impl Transport for NoiseTransport {
         Ok(TcpListener::bind(addr).await?)
     }
 
-    async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
+    async fn accept(&self, a: &mut Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)> {
         self.tcp
             .accept(a)
             .await
@@ -102,5 +102,8 @@ impl Transport for NoiseTransport {
             .await
             .with_context(|| "Failed to do noise handshake")?;
         return Ok(conn);
+    }
+
+    async fn close(&self, _: Self::Acceptor) {
     }
 }

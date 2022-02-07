@@ -14,6 +14,8 @@ pub enum TransportType {
     Tls,
     #[serde(rename = "noise")]
     Noise,
+    #[serde(rename = "quic")]
+    Quic,
 }
 
 impl Default for TransportType {
@@ -88,6 +90,8 @@ pub struct TlsConfig {
     pub trusted_root: Option<String>,
     pub pkcs12: Option<String>,
     pub pkcs12_password: Option<String>,
+    pub pem_server_key: Option<String>,
+    pub pem_server_cert: Option<String>,
 }
 
 fn default_noise_pattern() -> String {
@@ -129,6 +133,7 @@ pub struct TransportConfig {
     pub keepalive_interval: u64,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
+    pub quic: Option<TlsConfig>,  // reuse TLSconfig since QUIC uses TLS1.3
 }
 
 impl Default for TransportConfig {
@@ -140,6 +145,7 @@ impl Default for TransportConfig {
             keepalive_interval: default_keepalive_interval(),
             tls: None,
             noise: None,
+            quic: None
         }
     }
 }
@@ -228,6 +234,29 @@ impl Config {
         Ok(())
     }
 
+    fn validate_tls_config(tls_config: &TlsConfig, is_server:  bool, is_quic: bool) -> Result<()>{
+        if is_server {
+            if tls_config.pem_server_key.is_some() {
+                if !is_quic {
+                    bail!("`pem_server_key` and `pem_server_cert` are not yet supported for TLS")
+                }
+                tls_config.pem_server_cert.as_ref().ok_or(
+                    anyhow!("`pem_server_key` provided but `pem_server_cert` is missing"))?;
+            } else {
+                tls_config
+                    .pkcs12
+                    .as_ref()
+                    .and(tls_config.pkcs12_password.as_ref())
+                    .ok_or(anyhow!("Missing `pkcs12` or `pkcs12_password`"))?;
+            }
+        } else {
+            tls_config
+                .trusted_root
+                .as_ref()
+                .ok_or(anyhow!("Missing `trusted_root`"))?;
+        }
+        Ok(())
+    }
     fn validate_transport_config(config: &TransportConfig, is_server: bool) -> Result<()> {
         match config.transport_type {
             TransportType::Tcp => Ok(()),
@@ -236,19 +265,14 @@ impl Config {
                     .tls
                     .as_ref()
                     .ok_or(anyhow!("Missing TLS configuration"))?;
-                if is_server {
-                    tls_config
-                        .pkcs12
-                        .as_ref()
-                        .and(tls_config.pkcs12_password.as_ref())
-                        .ok_or(anyhow!("Missing `pkcs12` or `pkcs12_password`"))?;
-                } else {
-                    tls_config
-                        .trusted_root
-                        .as_ref()
-                        .ok_or(anyhow!("Missing `trusted_root`"))?;
-                }
-                Ok(())
+                Config::validate_tls_config(tls_config, is_server, false)
+            }
+            TransportType::Quic => {
+                let tls_config = config
+                    .quic
+                    .as_ref()
+                    .ok_or(anyhow!("Missing QUIC configuration"))?;
+                Config::validate_tls_config(tls_config, is_server, true)
             }
             TransportType::Noise => {
                 // The check is done in transport

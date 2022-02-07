@@ -11,7 +11,7 @@ build = "build.rs"
 include = ["src/**/*", "LICENSE", "README.md", "build.rs"]
 
 [features]
-default = ["server", "client", "tls", "noise", "hot-reload"]
+default = ["server", "client", "tls", "noise", "quic", "hot-reload"]
 
 # Run as a server
 server = []
@@ -21,6 +21,9 @@ client = []
 tls = ["tokio-native-tls"]
 # Noise support
 noise = ["snowstorm", "base64"]
+#QUIC support
+quic = ["quinn", "rustls", "rustls-pemfile", "p12", "futures-util"]
+
 # Configuration hot-reload support
 hot-reload = ["notify"]
 
@@ -70,6 +73,11 @@ base64 = { version = "0.13", optional = true }
 notify = { version = "5.0.0-pre.13", optional = true }
 console-subscriber = { version = "0.1", optional = true, features = ["parking_lot"] }
 atty = "0.2"
+quinn = { version = "0.8.0", optional = true}
+rustls = { version = "*", default-features = false, features = ["quic"], optional = true }
+rustls-pemfile = { version = "*", optional = true }
+p12 = { version = "0.4.0", optional = true }
+futures-util = { version = "*", optional = true}
 
 [build-dependencies]
 vergen = { version = "6.0", default-features = false, features = ["build", "git", "cargo"] }
