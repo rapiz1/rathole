@@ -33,12 +33,9 @@ pub async fn run_client(
     shutdown_rx: broadcast::Receiver<bool>,
     service_rx: mpsc::Receiver<ServiceChange>,
 ) -> Result<()> {
-    let config = match &config.client {
-        Some(v) => v,
-        None => {
-            return Err(anyhow!("Try to run as a client, but the configuration is missing. Please add the `[client]` block"))
-        }
-    };
+    let config = config.client.as_ref().ok_or(anyhow!(
+        "Try to run as a client, but the configuration is missing. Please add the `[client]` block"
+    ))?;
 
     match config.transport.transport_type {
         TransportType::Tcp => {
@@ -169,25 +166,19 @@ async fn do_data_channel_handshake<T: Transport>(
     let mut conn: T::Stream = retry_notify(
         backoff,
         || async {
-            match args
-                .connector
+            args.connector
                 .connect(&args.remote_addr)
                 .await
                 .with_context(|| format!("Failed to connect to {}", &args.remote_addr))
                 .map_err(backoff::Error::transient)
-            {
-                Ok(conn) => {
-                    T::hint(&conn, args.socket_opts);
-                    Ok(conn)
-                }
-                Err(e) => Err(e),
-            }
         },
         |e, duration| {
             warn!("{:#}. Retry in {:?}", e, duration);
         },
     )
     .await?;
+
+    T::hint(&conn, args.socket_opts);
 
     // Send nonce
     let v: &[u8; HASH_WIDTH_IN_BYTES] = args.session_key[..].try_into().unwrap();
@@ -346,7 +337,7 @@ async fn run_udp_forwarder(
             val = s.recv(&mut buf) => {
                 let len = match val {
                     Ok(v) => v,
-                    Err(_) => {break;}
+                    Err(_) => break
                 };
 
                 let t = UdpTraffic{
