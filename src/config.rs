@@ -26,21 +26,9 @@ impl Deref for MaskedString {
     }
 }
 
-impl AsRef<[u8]> for MaskedString {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-}
-
 impl From<&str> for MaskedString {
     fn from(s: &str) -> MaskedString {
         MaskedString(String::from(s))
-    }
-}
-
-impl From<MaskedString> for String {
-    fn from(s: MaskedString) -> String {
-        s.0
     }
 }
 

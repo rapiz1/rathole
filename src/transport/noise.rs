@@ -54,7 +54,8 @@ impl Transport for NoiseTransport {
         };
 
         let local_private_key = match &config.local_private_key {
-            Some(x) => base64::decode(x).with_context(|| "Failed to decode local_private_key")?,
+            Some(x) => base64::decode(x.as_bytes())
+                .with_context(|| "Failed to decode local_private_key")?,
             None => builder.generate_keypair()?.private,
         };
 
