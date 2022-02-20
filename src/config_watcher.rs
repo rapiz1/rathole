@@ -138,7 +138,7 @@ async fn config_watcher(
     event_tx: mpsc::UnboundedSender<ConfigChange>,
     mut old: Config,
 ) -> Result<()> {
-    let (fevent_tx, mut fevent_rx) = mpsc::channel(16);
+    let (fevent_tx, mut fevent_rx) = mpsc::unbounded_channel();
 
     let mut watcher =
         notify::recommended_watcher(move |res: Result<notify::Event, _>| match res {
