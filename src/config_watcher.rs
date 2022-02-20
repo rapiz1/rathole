@@ -144,10 +144,13 @@ async fn config_watcher(
     let mut watcher =
         notify::recommended_watcher(move |res: Result<notify::Event, _>| match res {
             Ok(e) => {
-                if matches!(e.kind, EventKind::Modify(ModifyKind::Data(_)))
-                    && e.paths.get(0).map(|x| x.file_name()).flatten() == path_clone.file_name()
+                if matches!(e.kind, EventKind::Modify(_))
+                    && e.paths
+                        .iter()
+                        .map(|x| x.file_name())
+                        .any(|x| x == path_clone.file_name())
                 {
-                    let _ = fevent_tx.send(true);
+                    let _ = fevent_tx.blocking_send(true);
                 }
             }
             Err(e) => error!("watch error: {:#}", e),
