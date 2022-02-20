@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc};
 use tracing::{error, info, instrument};
 
 #[cfg(feature = "notify")]
-use notify::{event::ModifyKind, EventKind, RecursiveMode, Watcher};
+use notify::{EventKind, RecursiveMode, Watcher};
 
 #[derive(Debug, PartialEq)]
 pub enum ConfigChange {
