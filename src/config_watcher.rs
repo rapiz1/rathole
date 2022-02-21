@@ -11,7 +11,7 @@ use tokio::sync::{broadcast, mpsc};
 use tracing::{error, info, instrument};
 
 #[cfg(feature = "notify")]
-use notify::{event::ModifyKind, EventKind, RecursiveMode, Watcher};
+use notify::{EventKind, RecursiveMode, Watcher};
 
 #[derive(Debug, PartialEq)]
 pub enum ConfigChange {
@@ -139,18 +139,24 @@ async fn config_watcher(
     mut old: Config,
 ) -> Result<()> {
     let (fevent_tx, mut fevent_rx) = mpsc::unbounded_channel();
-
+    let parent_path = path.parent().expect("config file should have a parent dir");
+    let path_clone = path.clone();
     let mut watcher =
         notify::recommended_watcher(move |res: Result<notify::Event, _>| match res {
             Ok(e) => {
-                if let EventKind::Modify(ModifyKind::Data(_)) = e.kind {
+                if matches!(e.kind, EventKind::Modify(_))
+                    && e.paths
+                        .iter()
+                        .map(|x| x.file_name())
+                        .any(|x| x == path_clone.file_name())
+                {
                     let _ = fevent_tx.send(true);
                 }
             }
             Err(e) => error!("watch error: {:#}", e),
         })?;
 
-    watcher.watch(&path, RecursiveMode::NonRecursive)?;
+    watcher.watch(parent_path, RecursiveMode::NonRecursive)?;
     info!("Start watching the config");
 
     loop {
