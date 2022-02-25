@@ -2,8 +2,8 @@ name: Release
 
 on:
   push:
-    tags:        
-      - '*'
+    tags:
+      - "*"
 
   workflow_dispatch:
 
@@ -62,56 +62,45 @@ jobs:
             target: x86_64-pc-windows-msvc
             exe: rathole.exe
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-    - name: Install cross
-      run: cargo install --version 0.1.16 cross
-    - name: Run tests
-      run: cross test --release --target ${{ matrix.target }} --verbose
-    - name: Build release
-      run: cross build --release --target ${{ matrix.target }}
-    - name: Install LLVM Strip
-      if: matrix.os == 'ubuntu-latest'
-      run: sudo apt-get install llvm
-    - name: LLVM Strip
-      if: matrix.os == 'ubuntu-latest'
-      continue-on-error: true
-      run: llvm-strip target/${{ matrix.target }}/release/${{ matrix.exe }}
-    - name: MacOS Strip
-      if: matrix.os == 'macos-latest'
-      continue-on-error: true
-      run: strip target/${{ matrix.target }}/release/${{ matrix.exe }}
-    - name: Run UPX
-      # Upx may not support some platforms. Ignore the errors
-      continue-on-error: true
-      # Disable upx for mips. See https://github.com/upx/upx/issues/387
-      if: matrix.os == 'ubuntu-latest' && !contains(matrix.target, 'mips')
-      uses: crazy-max/ghaction-upx@v1
-      with:
-        version: v3.96
-        files: target/${{ matrix.target }}/release/${{ matrix.exe }}
-        args: -q --best --lzma
-    - uses: actions/upload-artifact@v2
-      with:
-        name: rathole-${{ matrix.target }}
-        path: target/${{ matrix.target }}/release/${{ matrix.exe }}
-    - name: Zip Release
-      uses: TheDoctor0/zip-release@0.6.1
-      with:
-        type: zip
-        filename: rathole-${{ matrix.target }}.zip
-        directory: target/${{ matrix.target }}/release/
-        path: ${{ matrix.exe }}
-    - name: Publish
-      uses: softprops/action-gh-release@v1
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: target/${{ matrix.target }}/release/rathole-${{ matrix.target }}.zip
-        generate_release_notes: true
-        draft: true
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+      - name: Install cross
+        run: cargo install --version 0.1.16 cross
+      - name: Run tests
+        run: cross test --release --target ${{ matrix.target }} --verbose
+      - name: Build release
+        run: cross build --release --target ${{ matrix.target }}
+      - name: Run UPX
+        # Upx may not support some platforms. Ignore the errors
+        continue-on-error: true
+        # Disable upx for mips. See https://github.com/upx/upx/issues/387
+        if: matrix.os == 'ubuntu-latest' && !contains(matrix.target, 'mips')
+        uses: crazy-max/ghaction-upx@v1
+        with:
+          version: v3.96
+          files: target/${{ matrix.target }}/release/${{ matrix.exe }}
+          args: -q --best --lzma
+      - uses: actions/upload-artifact@v2
+        with:
+          name: rathole-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/${{ matrix.exe }}
+      - name: Zip Release
+        uses: TheDoctor0/zip-release@0.6.1
+        with:
+          type: zip
+          filename: rathole-${{ matrix.target }}.zip
+          directory: target/${{ matrix.target }}/release/
+          path: ${{ matrix.exe }}
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: target/${{ matrix.target }}/release/rathole-${{ matrix.target }}.zip
+          generate_release_notes: true
+          draft: true
   docker:
     name: Publish to Docker Hub
     if: startsWith(github.ref, 'refs/tags/')
@@ -121,7 +110,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
       - name: Login to DockerHub
-        uses: docker/login-action@v1 
+        uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -143,6 +132,6 @@ jobs:
           profile: minimal
           toolchain: stable
       - name: Publish
-        env: 
+        env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_IO_API_TOKEN }}
         run: cargo publish

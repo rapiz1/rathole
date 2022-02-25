@@ -36,6 +36,7 @@ panic = "abort"
 panic = "abort"
 lto = true
 codegen-units = 1
+strip = true
 
 [profile.bench]
 debug = 1
