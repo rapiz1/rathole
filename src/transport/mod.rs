@@ -9,10 +9,15 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::net::{TcpStream, ToSocketAddrs};
 use tracing::{error, trace};
 
-pub static DEFAULT_NODELAY: bool = false;
+pub const DEFAULT_NODELAY: bool = false;
 
-pub static DEFAULT_KEEPALIVE_SECS: u64 = 10;
-pub static DEFAULT_KEEPALIVE_INTERVAL: u64 = 3;
+pub const DEFAULT_KEEPALIVE_SECS: u64 = 10;
+pub const DEFAULT_KEEPALIVE_INTERVAL: u64 = 3;
+
+// TODO: Make this configurable
+/// Application-layer heartbeat interval in secs
+pub const HEARTBEAT_INTERVAL_SECS: u64 = 40;
+pub const HEARTBEAT_TIMEOUT_SECS: u64 = 20;
 
 /// Specify a transport layer, like TCP, TLS
 #[async_trait]

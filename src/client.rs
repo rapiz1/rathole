@@ -6,7 +6,9 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{SocketOpts, TcpTransport, Transport};
+use crate::transport::{
+    SocketOpts, TcpTransport, Transport, HEARTBEAT_INTERVAL_SECS, HEARTBEAT_TIMEOUT_SECS,
+};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use backoff::{backoff::Backoff, future::retry_notify};
@@ -451,9 +453,14 @@ impl<T: 'static + Transport> ControlChannel<T> {
                                     warn!("{:#}", e);
                                 }
                             }.instrument(Span::current()));
-                        }
+                        },
+                        ControlChannelCmd::HeartBeat => ()
                     }
                 },
+                _ = time::sleep(Duration::from_secs(HEARTBEAT_INTERVAL_SECS + HEARTBEAT_TIMEOUT_SECS)) => {
+                    warn!("Heartbeat timed out");
+                    break;
+                }
                 _ = &mut self.shutdown_rx => {
                     break;
                 }

@@ -8,7 +8,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{SocketOpts, TcpTransport, Transport};
+use crate::transport::{SocketOpts, TcpTransport, Transport, HEARTBEAT_INTERVAL_SECS};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -435,6 +435,7 @@ where
             conn,
             shutdown_rx,
             data_ch_req_rx,
+            heartbeat_interval_secs: HEARTBEAT_INTERVAL_SECS,
         };
 
         // Run the control channel
@@ -460,13 +461,26 @@ struct ControlChannel<T: Transport> {
     conn: T::Stream,                               // The connection of control channel
     shutdown_rx: broadcast::Receiver<bool>,        // Receives the shutdown signal
     data_ch_req_rx: mpsc::UnboundedReceiver<bool>, // Receives visitor connections
+    heartbeat_interval_secs: u64,                  // Application-layer heartbeat interval in secs
 }
 
 impl<T: Transport> ControlChannel<T> {
+    async fn write_and_flush(&mut self, data: &[u8]) -> Result<()> {
+        self.conn
+            .write_all(data)
+            .await
+            .with_context(|| "Failed to write control cmds")?;
+        self.conn
+            .flush()
+            .await
+            .with_context(|| "Failed to flush control cmds")?;
+        Ok(())
+    }
     // Run a control channel
     #[instrument(skip_all)]
     async fn run(mut self) -> Result<()> {
-        let cmd = bincode::serialize(&ControlChannelCmd::CreateDataChannel).unwrap();
+        let create_ch_cmd = bincode::serialize(&ControlChannelCmd::CreateDataChannel).unwrap();
+        let heartbeat = bincode::serialize(&ControlChannelCmd::HeartBeat).unwrap();
 
         // Wait for data channel requests and the shutdown signal
         loop {
@@ -474,11 +488,7 @@ impl<T: Transport> ControlChannel<T> {
                 val = self.data_ch_req_rx.recv() => {
                     match val {
                         Some(_) => {
-                            if let Err(e) = self.conn.write_all(&cmd).await.with_context(||"Failed to write control cmds") {
-                                error!("{:#}", e);
-                                break;
-                            }
-                            if let Err(e) = self.conn.flush().await.with_context(|| "Failed to flush control cmds") {
+                            if let Err(e) = self.write_and_flush(&create_ch_cmd).await {
                                 error!("{:#}", e);
                                 break;
                             }
@@ -488,6 +498,12 @@ impl<T: Transport> ControlChannel<T> {
                         }
                     }
                 },
+                _ = time::sleep(Duration::from_secs(self.heartbeat_interval_secs)) => {
+                            if let Err(e) = self.write_and_flush(&heartbeat).await {
+                                error!("{:#}", e);
+                                break;
+                            }
+                }
                 // Wait for the shutdown signal
                 _ = self.shutdown_rx.recv() => {
                     break;
