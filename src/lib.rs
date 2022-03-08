@@ -93,7 +93,7 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
 
                 last_instance = Some((
                     tokio::spawn(run_instance(
-                        *(config.clone()),
+                        *config,
                         args.clone(),
                         shutdown_tx.subscribe(),
                         service_update_rx,
@@ -127,13 +127,13 @@ async fn run_instance(
             #[cfg(not(feature = "client"))]
             crate::helper::feature_not_compile("client");
             #[cfg(feature = "client")]
-            run_client(&config, shutdown_rx, service_update).await
+            run_client(config, shutdown_rx, service_update).await
         }
         RunMode::Server => {
             #[cfg(not(feature = "server"))]
             crate::helper::feature_not_compile("server");
             #[cfg(feature = "server")]
-            run_server(&config, shutdown_rx, service_update).await
+            run_server(config, shutdown_rx, service_update).await
         }
     };
     ret.unwrap();

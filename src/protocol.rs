@@ -9,9 +9,10 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use tracing::trace;
 
 type ProtocolVersion = u8;
-const PROTO_V0: u8 = 0u8;
+const _PROTO_V0: u8 = 0u8;
+const PROTO_V1: u8 = 1u8;
 
-pub const CURRENT_PROTO_VERSION: ProtocolVersion = PROTO_V0;
+pub const CURRENT_PROTO_VERSION: ProtocolVersion = PROTO_V1;
 
 pub type Digest = [u8; HASH_WIDTH_IN_BYTES];
 
@@ -48,6 +49,7 @@ impl std::fmt::Display for Ack {
 #[derive(Deserialize, Serialize, Debug)]
 pub enum ControlChannelCmd {
     CreateDataChannel,
+    HeartBeat,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

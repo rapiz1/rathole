@@ -105,6 +105,7 @@ Here is the full configuration specification:
 [client]
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
+heartbeat_timeout = 40 # Optional. Set to 0 to disable the application-layer heartbeat test. The value must be greater than `server.heartbeat_interval`. Default: 40 secs
 
 [client.transport] # The whole block is optional. Specify which transport to use
 type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
@@ -112,8 +113,8 @@ type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp
 [client.transport.tcp] # Optional
 proxy = "socks5://user:passwd@127.0.0.1:1080" # Optional. Use the proxy to connect to the server
 nodelay = false # Optional. Determine whether to enable TCP_NODELAY, if applicable, to improve the latency but decrease the bandwidth. Default: false
-keepalive_secs = 10 # Optional. Specify `tcp_keepalive_time` in `tcp(7)`, if applicable. Default: 10 seconds
-keepalive_interval = 5 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if applicable. Default: 5 seconds
+keepalive_secs = 20 # Optional. Specify `tcp_keepalive_time` in `tcp(7)`, if applicable. Default: 20 seconds
+keepalive_interval = 8 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if applicable. Default: 8 seconds
 
 [client.transport.tls] # Necessary if `type` is "tls"
 trusted_root = "ca.pem" # Necessary. The certificate of CA that signed the server's certificate
@@ -136,12 +137,13 @@ local_addr = "127.0.0.1:1082"
 [server]
 bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change.
 default_token = "default_token_if_not_specify" # Optional
+heartbeat_interval = 30 # Optional. The interval between two application-layer heartbeat. Set to 0 to disable sending heartbeat. Default: 30 secs
 
 [server.transport] # Same as `[client.transport]`
 type = "tcp"
 nodelay = false
-keepalive_secs = 10
-keepalive_interval = 5
+keepalive_secs = 20
+keepalive_interval = 8
 
 [server.transport.tls] # Necessary if `type` is "tls"
 pkcs12 = "identify.pfx" # Necessary. pkcs12 file of server's certificate and private key
