@@ -76,7 +76,7 @@ pub async fn tcp_connect_with_proxy(addr: &str, proxy: Option<&Url>) -> Result<T
         ))
         .await?;
 
-        let auth = if url.username().len() > 0 || url.password().is_some() {
+        let auth = if !url.username().is_empty() || url.password().is_some() {
             Some(async_socks5::Auth {
                 username: url.username().into(),
                 password: url.password().unwrap_or("").into(),
