@@ -1,6 +1,10 @@
 name: Rust
 
-on: [push, pull_request]
+on:
+  pull_request:
+    branches: ["*"]
+  push:
+    branches: ["main"]
 
 concurrency:
   # Documentation suggests ${{ github.head_ref }}, but that's only available on pull_request/pull_request_target triggers, so using ${{ github.ref }}.
