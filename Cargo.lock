@@ -68,6 +68,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a99269dff3bc004caa411f38845c20303f1e393ca2bd6581576fa3a7f59577d"
 
 [[package]]
+name = "async-http-proxy"
+version = "1.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29faa5d4d308266048bd7505ba55484315a890102f9345b9ff4b87de64201592"
+dependencies = [
+ "base64",
+ "httparse",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "async-socks5"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77f634add2445eb2c1f785642a67ca1073fedd71e73dc3ca69435ef9b9bdedc7"
+dependencies = [
+ "async-trait",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "async-stream"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1483,6 +1506,8 @@ name = "rathole"
 version = "0.3.10"
 dependencies = [
  "anyhow",
+ "async-http-proxy",
+ "async-socks5",
  "async-trait",
  "atty",
  "backoff",
@@ -1505,6 +1530,7 @@ dependencies = [
  "toml",
  "tracing",
  "tracing-subscriber 0.2.25",
+ "url",
  "vergen",
 ]
 
@@ -2222,6 +2248,7 @@ dependencies = [
  "idna",
  "matches",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

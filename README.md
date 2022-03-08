@@ -108,6 +108,9 @@ default_token = "default_token_if_not_specify" # Optional. The default token of 
 
 [client.transport] # The whole block is optional. Specify which transport to use
 type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
+
+[client.transport.tcp] # Optional
+proxy = "socks5://user:passwd@127.0.0.1:1080" # Optional. Use the proxy to connect to the server
 nodelay = false # Optional. Determine whether to enable TCP_NODELAY, if applicable, to improve the latency but decrease the bandwidth. Default: false
 keepalive_secs = 10 # Optional. Specify `tcp_keepalive_time` in `tcp(7)`, if applicable. Default: 10 seconds
 keepalive_interval = 5 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if applicable. Default: 5 seconds

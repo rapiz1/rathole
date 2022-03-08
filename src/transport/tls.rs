@@ -2,6 +2,7 @@ use std::net::SocketAddr;
 
 use super::{SocketOpts, TcpTransport, Transport};
 use crate::config::{TlsConfig, TransportConfig};
+use crate::helper::host_port_pair;
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 use std::fs;
@@ -94,8 +95,8 @@ impl Transport for TlsTransport {
             .connect(
                 self.config
                     .hostname
-                    .as_ref()
-                    .unwrap_or(&String::from(addr.split(':').next().unwrap())),
+                    .as_deref()
+                    .unwrap_or(host_port_pair(addr)?.0),
                 conn,
             )
             .await?)
