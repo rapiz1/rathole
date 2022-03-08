@@ -64,4 +64,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: rathole-${{ matrix.target }}
-          path: target/release/${{ matrix.exe }}
+          path: target/debug/${{ matrix.exe }}
