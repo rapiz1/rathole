@@ -1,4 +1,7 @@
-use crate::config::TransportConfig;
+use crate::{
+    config::{TcpConfig, TransportConfig},
+    helper::tcp_connect_with_proxy,
+};
 
 use super::{SocketOpts, Transport};
 use anyhow::Result;
@@ -9,6 +12,7 @@ use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 #[derive(Debug)]
 pub struct TcpTransport {
     socket_opts: SocketOpts,
+    cfg: TcpConfig,
 }
 
 #[async_trait]
@@ -19,7 +23,8 @@ impl Transport for TcpTransport {
 
     fn new(config: &TransportConfig) -> Result<Self> {
         Ok(TcpTransport {
-            socket_opts: SocketOpts::from_transport_cfg(config),
+            socket_opts: SocketOpts::from_cfg(&config.tcp),
+            cfg: config.tcp.clone(),
         })
     }
 
@@ -42,7 +47,7 @@ impl Transport for TcpTransport {
     }
 
     async fn connect(&self, addr: &str) -> Result<Self::Stream> {
-        let s = TcpStream::connect(addr).await?;
+        let s = tcp_connect_with_proxy(addr, self.cfg.proxy.as_ref()).await?;
         self.socket_opts.apply(&s);
         Ok(s)
     }

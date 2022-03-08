@@ -1,0 +1,15 @@
+[client]
+remote_addr = "127.0.0.1:2333"
+default_token = "123"
+
+[client.services.foo1]
+local_addr = "127.0.0.1:80"
+
+[client.transport]
+type = "tcp"
+[client.transport.tcp]
+# `proxy` controls how the client connect to the server
+# Use socks5 proxy at 127.0.0.1, with port 1080, username 'myuser' and password 'mypass'
+proxy = "socks5://myuser:mypass@127.0.0.1:1080"
+# Use http proxy. Similar to socks5 proxy
+# proxy = "http://myuser:mypass@127.0.0.1:8080"
