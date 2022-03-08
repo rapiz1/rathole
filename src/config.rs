@@ -258,16 +258,17 @@ impl Config {
     }
 
     fn validate_transport_config(config: &TransportConfig, is_server: bool) -> Result<()> {
+        config
+            .tcp
+            .proxy
+            .as_ref()
+            .map_or(Ok(()), |u| match u.scheme() {
+                "socks5" => Ok(()),
+                "http" => Ok(()),
+                _ => Err(anyhow!(format!("Unknown proxy scheme: {}", u.scheme()))),
+            })?;
         match config.transport_type {
-            TransportType::Tcp => config
-                .tcp
-                .proxy
-                .as_ref()
-                .map_or(Ok(()), |u| match u.scheme() {
-                    "socks5" => Ok(()),
-                    "http" => Ok(()),
-                    _ => Err(anyhow!(format!("Unknown proxy scheme: {}", u.scheme()))),
-                }),
+            TransportType::Tcp => Ok(()),
             TransportType::Tls => {
                 let tls_config = config
                     .tls
