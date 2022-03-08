@@ -105,6 +105,7 @@ Here is the full configuration specification:
 [client]
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
+heartbeat_timeout = 40 # Optional. Set to 0 to disable the heartbeat test. Default: 40 secs
 
 [client.transport] # The whole block is optional. Specify which transport to use
 type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
@@ -136,6 +137,7 @@ local_addr = "127.0.0.1:1082"
 [server]
 bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change.
 default_token = "default_token_if_not_specify" # Optional
+heartbeat_interval = 30 # Optional. Set to 0 to disable the heartbeat. Default: 30 secs
 
 [server.transport] # Same as `[client.transport]`
 type = "tcp"

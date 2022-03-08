@@ -9,6 +9,10 @@ use url::Url;
 
 use crate::transport::{DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_SECS, DEFAULT_NODELAY};
 
+/// Application-layer heartbeat interval in secs
+const DEFAULT_HEARTBEAT_INTERVAL_SECS: u64 = 30;
+const DEFAULT_HEARTBEAT_TIMEOUT_SECS: u64 = 40;
+
 /// String with Debug implementation that emits "MASKED"
 /// Used to mask sensitive strings when logging
 #[derive(Serialize, Deserialize, Default, PartialEq, Clone)]
@@ -177,6 +181,10 @@ pub struct TransportConfig {
     pub noise: Option<NoiseConfig>,
 }
 
+fn default_heartbeat_timeout() -> u64 {
+    DEFAULT_HEARTBEAT_TIMEOUT_SECS
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ClientConfig {
@@ -185,6 +193,12 @@ pub struct ClientConfig {
     pub services: HashMap<String, ClientServiceConfig>,
     #[serde(default)]
     pub transport: TransportConfig,
+    #[serde(default = "default_heartbeat_timeout")]
+    pub heartbeat_timeout: u64,
+}
+
+fn default_heartbeat_interval() -> u64 {
+    DEFAULT_HEARTBEAT_INTERVAL_SECS
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
@@ -195,6 +209,8 @@ pub struct ServerConfig {
     pub services: HashMap<String, ServerServiceConfig>,
     #[serde(default)]
     pub transport: TransportConfig,
+    #[serde(default = "default_heartbeat_interval")]
+    pub heartbeat_interval: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
