@@ -97,7 +97,7 @@ But the `[client]` and `[server]` block can also be put in one file. Then on the
 
 Before heading to the full configuration specification, it's recommend to skim [the configuration examples](./examples) to get a feeling of the configuration format.
 
-See [Security](./docs/transport.md) for more details about encryption and the `transport` block.
+See [Transport](./docs/transport.md) for more details about encryption and the `transport` block.
 
 Here is the full configuration specification:
 
@@ -105,13 +105,13 @@ Here is the full configuration specification:
 [client]
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
-heartbeat_timeout = 40 # Optional. Set to 0 to disable the application-layer heartbeat test. The value must be greater than `server.heartbeat_interval`. Default: 40 secs
+heartbeat_timeout = 40 # Optional. Set to 0 to disable the application-layer heartbeat test. The value must be greater than `server.heartbeat_interval`. Default: 40 seconds
 
 [client.transport] # The whole block is optional. Specify which transport to use
 type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
 
-[client.transport.tcp] # Optional
-proxy = "socks5://user:passwd@127.0.0.1:1080" # Optional. Use the proxy to connect to the server
+[client.transport.tcp] # Optional. Also affects `noise` and `tls`
+proxy = "socks5://user:passwd@127.0.0.1:1080" # Optional. The proxy used to connect to the server. `http` and `socks5` is supported.
 nodelay = false # Optional. Determine whether to enable TCP_NODELAY, if applicable, to improve the latency but decrease the bandwidth. Default: false
 keepalive_secs = 20 # Optional. Specify `tcp_keepalive_time` in `tcp(7)`, if applicable. Default: 20 seconds
 keepalive_interval = 8 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if applicable. Default: 8 seconds
@@ -137,10 +137,12 @@ local_addr = "127.0.0.1:1082"
 [server]
 bind_addr = "0.0.0.0:2333" # Necessary. The address that the server listens for clients. Generally only the port needs to be change.
 default_token = "default_token_if_not_specify" # Optional
-heartbeat_interval = 30 # Optional. The interval between two application-layer heartbeat. Set to 0 to disable sending heartbeat. Default: 30 secs
+heartbeat_interval = 30 # Optional. The interval between two application-layer heartbeat. Set to 0 to disable sending heartbeat. Default: 30 seconds
 
 [server.transport] # Same as `[client.transport]`
 type = "tcp"
+
+[server.transport.tcp] # Same as the client
 nodelay = false
 keepalive_secs = 20
 keepalive_interval = 8
@@ -168,7 +170,7 @@ bind_addr = "0.0.0.1:8082"
 
 `rathole`, like many other Rust programs, use environment variables to control the logging level. `info`, `warn`, `error`, `debug`, `trace` are available.
 
-```
+```shell
 RUST_LOG=error ./rathole config.toml
 ```
 
