@@ -26,7 +26,7 @@ impl Transport for TlsTransport {
 
     fn new(config: &TransportConfig) -> Result<Self> {
         let tcp = TcpTransport::new(config)?;
-        let config = config.tls.as_ref().ok_or(anyhow!("Missing tls config"))?;
+        let config = config.tls.as_ref().ok_or_else(|| anyhow!("Missing tls config"))?;
 
         let connector = match config.trusted_root.as_ref() {
             Some(path) => {

@@ -676,7 +676,7 @@ async fn run_udp_connection_pool<T: Transport>(
     let mut conn = data_ch_rx
         .recv()
         .await
-        .ok_or(anyhow!("No available data channels"))?;
+        .ok_or_else(|| anyhow!("No available data channels"))?;
     conn.write_all(&cmd).await?;
 
     let mut buf = [0u8; UDP_BUFFER_SIZE];

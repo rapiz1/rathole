@@ -44,7 +44,7 @@ async fn to_socket_addr<A: ToSocketAddrs>(addr: A) -> Result<SocketAddr> {
     lookup_host(addr)
         .await?
         .next()
-        .ok_or(anyhow!("Failed to lookup the host"))
+        .ok_or_else(|| anyhow!("Failed to lookup the host"))
 }
 
 pub fn host_port_pair(s: &str) -> Result<(&str, u16)> {

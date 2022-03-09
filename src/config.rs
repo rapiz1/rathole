@@ -289,18 +289,18 @@ impl Config {
                 let tls_config = config
                     .tls
                     .as_ref()
-                    .ok_or(anyhow!("Missing TLS configuration"))?;
+                    .ok_or_else(|| anyhow!("Missing TLS configuration"))?;
                 if is_server {
                     tls_config
                         .pkcs12
                         .as_ref()
                         .and(tls_config.pkcs12_password.as_ref())
-                        .ok_or(anyhow!("Missing `pkcs12` or `pkcs12_password`"))?;
+                        .ok_or_else(|| anyhow!("Missing `pkcs12` or `pkcs12_password`"))?;
                 } else {
                     tls_config
                         .trusted_root
                         .as_ref()
-                        .ok_or(anyhow!("Missing `trusted_root`"))?;
+                        .ok_or_else(|| anyhow!("Missing `trusted_root`"))?;
                 }
                 Ok(())
             }
