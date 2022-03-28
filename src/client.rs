@@ -33,9 +33,11 @@ pub async fn run_client(
     shutdown_rx: broadcast::Receiver<bool>,
     service_rx: mpsc::Receiver<ServiceChange>,
 ) -> Result<()> {
-    let config = config.client.ok_or_else(|| anyhow!(
+    let config = config.client.ok_or_else(|| {
+        anyhow!(
         "Try to run as a client, but the configuration is missing. Please add the `[client]` block"
-    ))?;
+    )
+    })?;
 
     match config.transport.transport_type {
         TransportType::Tcp => {
@@ -459,8 +461,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
                     }
                 },
                 _ = time::sleep(Duration::from_secs(self.heartbeat_timeout)), if self.heartbeat_timeout != 0 => {
-                    warn!("Heartbeat timed out");
-                    break;
+                    return Err(anyhow!("Heartbeat timed out"))
                 }
                 _ = &mut self.shutdown_rx => {
                     break;
