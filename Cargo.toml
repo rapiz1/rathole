@@ -18,7 +18,7 @@ server = []
 # Run as a client
 client = []
 # TLS support
-tls = ["tokio-native-tls"]
+tls = ["tokio-rustls"]
 # Noise support
 noise = ["snowstorm", "base64"]
 # Configuration hot-reload support
@@ -64,7 +64,7 @@ tracing = "0.1"
 tracing-subscriber = "0.2"
 socket2 = { version = "0.4", features = ["all"] }
 fdlimit = "0.2"
-tokio-native-tls = { version = "0.3", optional = true }
+tokio-rustls = { version = "0.23", optional = true }
 async-trait = "0.1"
 snowstorm = { version = "0.3", optional = true, features = ["stream"], default-features = false }
 base64 = { version = "0.13", optional = true }
@@ -74,6 +74,7 @@ atty = "0.2"
 async-http-proxy = { version = "1.2", features = ["runtime-tokio", "basic-auth"] }
 async-socks5 = "0.5"
 url = { version = "2.2", features = ["serde"] }
+p12 = "0.6"
 
 [build-dependencies]
 vergen = { version = "6.0", default-features = false, features = ["build", "git", "cargo"] }
