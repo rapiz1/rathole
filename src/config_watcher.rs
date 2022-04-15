@@ -5,6 +5,7 @@ use crate::{
 use anyhow::{Context, Result};
 use std::{
     collections::HashMap,
+    env,
     path::{Path, PathBuf},
 };
 use tokio::sync::{broadcast, mpsc};
@@ -139,6 +140,11 @@ async fn config_watcher(
     mut old: Config,
 ) -> Result<()> {
     let (fevent_tx, mut fevent_rx) = mpsc::unbounded_channel();
+    let path = if path.is_absolute() {
+        path
+    } else {
+        env::current_dir()?.join(path)
+    };
     let parent_path = path.parent().expect("config file should have a parent dir");
     let path_clone = path.clone();
     let mut watcher =
