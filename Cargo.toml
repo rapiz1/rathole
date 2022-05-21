@@ -66,7 +66,7 @@ socket2 = { version = "0.4", features = ["all"] }
 fdlimit = "0.2"
 tokio-native-tls = { version = "0.3", optional = true }
 async-trait = "0.1"
-snowstorm = { version = "0.3", optional = true, features = ["stream"], default-features = false }
+snowstorm = { version = "0.4", optional = true, features = ["stream"], default-features = false }
 base64 = { version = "0.13", optional = true }
 notify = { version = "5.0.0-pre.13", optional = true }
 console-subscriber = { version = "0.1", optional = true, features = ["parking_lot"] }
