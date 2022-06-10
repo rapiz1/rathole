@@ -10,6 +10,8 @@ use tokio::{
 use tracing::trace;
 use url::Url;
 
+use crate::transport::AddrMaybeCached;
+
 // Tokio hesitates to expose this option...So we have to do it on our own :(
 // The good news is that using socket2 it can be easily done, without losing portability.
 // See https://github.com/tokio-rs/tokio/issues/3082
@@ -40,7 +42,7 @@ pub fn feature_not_compile(feature: &str) -> ! {
     )
 }
 
-async fn to_socket_addr<A: ToSocketAddrs>(addr: A) -> Result<SocketAddr> {
+pub async fn to_socket_addr<A: ToSocketAddrs>(addr: A) -> Result<SocketAddr> {
     lookup_host(addr)
         .await?
         .next()
@@ -68,8 +70,12 @@ pub async fn udp_connect<A: ToSocketAddrs>(addr: A) -> Result<UdpSocket> {
 
 /// Create a TcpStream using a proxy
 /// e.g. socks5://user:pass@127.0.0.1:1080 http://127.0.0.1:8080
-pub async fn tcp_connect_with_proxy(addr: &str, proxy: Option<&Url>) -> Result<TcpStream> {
+pub async fn tcp_connect_with_proxy(
+    addr: &AddrMaybeCached,
+    proxy: Option<&Url>,
+) -> Result<TcpStream> {
     if let Some(url) = proxy {
+        let addr = &addr.addr;
         let mut s = TcpStream::connect((
             url.host_str().expect("proxy url should have host field"),
             url.port().expect("proxy url should have port field"),
@@ -108,7 +114,10 @@ pub async fn tcp_connect_with_proxy(addr: &str, proxy: Option<&Url>) -> Result<T
         }
         Ok(s)
     } else {
-        Ok(TcpStream::connect(addr).await?)
+        Ok(match addr.socket_addr {
+            Some(s) => TcpStream::connect(s).await?,
+            None => TcpStream::connect(&addr.addr).await?,
+        })
     }
 }
 

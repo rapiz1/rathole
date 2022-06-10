@@ -1,8 +1,8 @@
 use crate::config::{ClientServiceConfig, ServerServiceConfig, TcpConfig, TransportConfig};
-use crate::helper::try_set_tcp_keepalive;
+use crate::helper::{to_socket_addr, try_set_tcp_keepalive};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::net::SocketAddr;
 use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -13,6 +13,40 @@ pub const DEFAULT_NODELAY: bool = false;
 
 pub const DEFAULT_KEEPALIVE_SECS: u64 = 20;
 pub const DEFAULT_KEEPALIVE_INTERVAL: u64 = 8;
+
+#[derive(Clone)]
+pub struct AddrMaybeCached {
+    pub addr: String,
+    pub socket_addr: Option<SocketAddr>,
+}
+
+impl AddrMaybeCached {
+    pub fn new(addr: &str) -> AddrMaybeCached {
+        AddrMaybeCached {
+            addr: addr.to_string(),
+            socket_addr: None,
+        }
+    }
+
+    pub async fn resolve(&mut self) -> Result<()> {
+        match to_socket_addr(&self.addr).await {
+            Ok(s) => {
+                self.socket_addr = Some(s);
+                Ok(())
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+
+impl Display for AddrMaybeCached {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.socket_addr {
+            Some(s) => f.write_fmt(format_args!("{}", s)),
+            None => f.write_str(&self.addr),
+        }
+    }
+}
 
 /// Specify a transport layer, like TCP, TLS
 #[async_trait]
@@ -30,7 +64,7 @@ pub trait Transport: Debug + Send + Sync {
     /// accept must be cancel safe
     async fn accept(&self, a: &Self::Acceptor) -> Result<(Self::RawStream, SocketAddr)>;
     async fn handshake(&self, conn: Self::RawStream) -> Result<Self::Stream>;
-    async fn connect(&self, addr: &str) -> Result<Self::Stream>;
+    async fn connect(&self, addr: &AddrMaybeCached) -> Result<Self::Stream>;
 }
 
 mod tcp;

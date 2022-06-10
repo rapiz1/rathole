@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use super::{SocketOpts, TcpTransport, Transport};
+use super::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
 use crate::config::{NoiseConfig, TransportConfig};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
@@ -92,7 +92,7 @@ impl Transport for NoiseTransport {
         Ok(conn)
     }
 
-    async fn connect(&self, addr: &str) -> Result<Self::Stream> {
+    async fn connect(&self, addr: &AddrMaybeCached) -> Result<Self::Stream> {
         let conn = self
             .tcp
             .connect(addr)

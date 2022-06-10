@@ -6,7 +6,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{SocketOpts, TcpTransport, Transport};
+use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use backoff::{backoff::Backoff, future::retry_notify};
@@ -150,7 +150,7 @@ impl<T: 'static + Transport> Client<T> {
 
 struct RunDataChannelArgs<T: Transport> {
     session_key: Nonce,
-    remote_addr: String,
+    remote_addr: AddrMaybeCached,
     connector: Arc<T>,
     socket_opts: SocketOpts,
     service: ClientServiceConfig,
@@ -385,9 +385,12 @@ struct ControlChannelHandle {
 impl<T: 'static + Transport> ControlChannel<T> {
     #[instrument(skip_all)]
     async fn run(&mut self) -> Result<()> {
+        let mut remote_addr = AddrMaybeCached::new(&self.remote_addr);
+        remote_addr.resolve().await?;
+
         let mut conn = self
             .transport
-            .connect(&self.remote_addr)
+            .connect(&remote_addr)
             .await
             .with_context(|| format!("Failed to connect to {}", &self.remote_addr))?;
         T::hint(&conn, SocketOpts::for_control_channel());
@@ -432,7 +435,6 @@ impl<T: 'static + Transport> ControlChannel<T> {
         // Channel ready
         info!("Control channel established");
 
-        let remote_addr = self.remote_addr.clone();
         // Socket options for the data channel
         let socket_opts = SocketOpts::from_client_cfg(&self.service);
         let data_ch_args = Arc::new(RunDataChannelArgs {
