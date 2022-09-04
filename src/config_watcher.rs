@@ -14,13 +14,13 @@ use tracing::{error, info, instrument};
 #[cfg(feature = "notify")]
 use notify::{EventKind, RecursiveMode, Watcher};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ConfigChange {
     General(Box<Config>), // Trigger a full restart
     ServiceChange(ServiceChange),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ServiceChange {
     ClientAdd(ClientServiceConfig),
     ClientDelete(String),

@@ -15,7 +15,7 @@ const DEFAULT_HEARTBEAT_TIMEOUT_SECS: u64 = 40;
 
 /// String with Debug implementation that emits "MASKED"
 /// Used to mask sensitive strings when logging
-#[derive(Serialize, Deserialize, Default, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
 pub struct MaskedString(String);
 
 impl Debug for MaskedString {
@@ -37,7 +37,7 @@ impl From<&str> for MaskedString {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]
 pub enum TransportType {
     #[serde(rename = "tcp")]
     Tcp,
@@ -53,7 +53,7 @@ impl Default for TransportType {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ClientServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
@@ -74,7 +74,7 @@ impl ClientServiceConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceType {
     #[serde(rename = "tcp")]
     Tcp,
@@ -92,7 +92,7 @@ fn default_service_type() -> ServiceType {
     Default::default()
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ServerServiceConfig {
     #[serde(rename = "type", default = "default_service_type")]
@@ -112,7 +112,7 @@ impl ServerServiceConfig {
         }
     }
 }
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TlsConfig {
     pub hostname: Option<String>,
@@ -125,7 +125,7 @@ fn default_noise_pattern() -> String {
     String::from("Noise_NK_25519_ChaChaPoly_BLAKE2s")
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct NoiseConfig {
     #[serde(default = "default_noise_pattern")]
@@ -147,7 +147,7 @@ fn default_keepalive_interval() -> u64 {
     DEFAULT_KEEPALIVE_INTERVAL
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TcpConfig {
     #[serde(default = "default_nodelay")]
@@ -170,7 +170,7 @@ impl Default for TcpConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Default)]
 #[serde(deny_unknown_fields)]
 pub struct TransportConfig {
     #[serde(rename = "type")]
@@ -185,7 +185,7 @@ fn default_heartbeat_timeout() -> u64 {
     DEFAULT_HEARTBEAT_TIMEOUT_SECS
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ClientConfig {
     pub remote_addr: String,
@@ -201,7 +201,7 @@ fn default_heartbeat_interval() -> u64 {
     DEFAULT_HEARTBEAT_INTERVAL_SECS
 }
 
-#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig {
     pub bind_addr: String,
@@ -213,7 +213,7 @@ pub struct ServerConfig {
     pub heartbeat_interval: u64,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub server: Option<ServerConfig>,
