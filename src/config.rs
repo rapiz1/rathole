@@ -296,11 +296,6 @@ impl Config {
                         .as_ref()
                         .and(tls_config.pkcs12_password.as_ref())
                         .ok_or_else(|| anyhow!("Missing `pkcs12` or `pkcs12_password`"))?;
-                } else {
-                    tls_config
-                        .trusted_root
-                        .as_ref()
-                        .ok_or_else(|| anyhow!("Missing `trusted_root`"))?;
                 }
                 Ok(())
             }

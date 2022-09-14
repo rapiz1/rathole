@@ -42,7 +42,11 @@ impl Transport for TlsTransport {
                     .build()?;
                 Some(TlsConnector::from(connector))
             }
-            None => None,
+            None => {
+                // if no trusted_root is specified, allow TlsConnector to use system default
+                let connector = native_tls::TlsConnector::builder().build()?;
+                Some(TlsConnector::from(connector))
+            },
         };
 
         let tls_acceptor = match config.pkcs12.as_ref() {
