@@ -10,7 +10,6 @@ mod transport;
 pub use cli::Cli;
 use cli::KeypairType;
 pub use config::Config;
-use config_watcher::ServiceChange;
 pub use constants::UDP_BUFFER_SIZE;
 
 use anyhow::Result;
@@ -76,7 +75,7 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
     let (shutdown_tx, _) = broadcast::channel(1);
 
     // (The join handle of the last instance, The service update channel sender)
-    let mut last_instance: Option<(tokio::task::JoinHandle<_>, mpsc::Sender<ServiceChange>)> = None;
+    let mut last_instance: Option<(tokio::task::JoinHandle<_>, mpsc::Sender<ConfigChange>)> = None;
 
     while let Some(e) = cfg_watcher.event_rx.recv().await {
         match e {
@@ -101,10 +100,10 @@ pub async fn run(args: Cli, shutdown_rx: broadcast::Receiver<bool>) -> Result<()
                     service_update_tx,
                 ));
             }
-            ConfigChange::ServiceChange(service_event) => {
-                info!("Service change detcted. {:?}", service_event);
+            ev => {
+                info!("Service change detected. {:?}", ev);
                 if let Some((_, service_update_tx)) = &last_instance {
-                    let _ = service_update_tx.send(service_event).await;
+                    let _ = service_update_tx.send(ev).await;
                 }
             }
         }
@@ -119,7 +118,7 @@ async fn run_instance(
     config: Config,
     args: Cli,
     shutdown_rx: broadcast::Receiver<bool>,
-    service_update: mpsc::Receiver<ServiceChange>,
+    service_update: mpsc::Receiver<ConfigChange>,
 ) {
     let ret: Result<()> = match determine_run_mode(&config, &args) {
         RunMode::Undetermine => panic!("Cannot determine running as a server or a client"),
