@@ -49,6 +49,9 @@ jobs:
           - os: macos-latest
             exe: rathole
             target: x86_64-apple-darwin
+          - os: macos-latest
+            exe: rathole
+            target: aarch64-apple-darwin
 
     steps:
       - uses: actions/checkout@v2
