@@ -1,9 +1,10 @@
-FROM ekidd/rust-musl-builder:latest as builder
+FROM rust:alpine as builder
+RUN apk add --no-cache musl-dev openssl openssl-dev pkgconfig
 WORKDIR /home/rust/src
 COPY . .
-RUN cargo build --locked --release
+RUN cargo build --locked --release --features client,server,noise,hot-reload
 RUN mkdir -p build-out/
-RUN cp target/x86_64-unknown-linux-musl/release/rathole build-out/
+RUN cp target/release/rathole build-out/
 
 FROM scratch
 WORKDIR /app
