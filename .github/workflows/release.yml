@@ -80,7 +80,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && !contains(matrix.target, 'mips')
         uses: crazy-max/ghaction-upx@v1
         with:
-          version: v3.96
+          version: v4.0.0
           files: target/${{ matrix.target }}/release/${{ matrix.exe }}
           args: -q --best --lzma
       - uses: actions/upload-artifact@v2
