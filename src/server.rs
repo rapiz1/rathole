@@ -292,7 +292,7 @@ async fn do_control_channel_handshake<T: 'static + Transport>(
         None => {
             conn.write_all(&bincode::serialize(&Ack::ServiceNotExist).unwrap())
                 .await?;
-            bail!("No such a service {}", hex::encode(&service_digest));
+            bail!("No such a service {}", hex::encode(service_digest));
         }
     }
     .to_owned();
