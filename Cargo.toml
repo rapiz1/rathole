@@ -76,5 +76,5 @@ async-socks5 = "0.5"
 url = { version = "2.2", features = ["serde"] }
 
 [build-dependencies]
-vergen = { version = "6.0", default-features = false, features = ["build", "git", "cargo"] }
+vergen = { version = "7.4.2", default-features = false, features = ["build", "git", "cargo"] }
 anyhow = "1.0"
