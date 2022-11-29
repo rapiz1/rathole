@@ -17,12 +17,13 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
 
 <!-- TOC -->
 
-- [Features](#features)
-- [Quickstart](#quickstart)
-- [Configuration](#configuration)
-  - [Logging](#logging)
-- [Benchmark](#benchmark)
-- [Development Status](#development-status)
+- [rathole](#rathole)
+    - [Features](#features)
+    - [Quickstart](#quickstart)
+    - [Configuration](#configuration)
+        - [Logging](#logging)
+    - [Benchmark](#benchmark)
+    - [Development Status](#development-status)
 
 <!-- /TOC -->
 
@@ -106,6 +107,7 @@ Here is the full configuration specification:
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
 heartbeat_timeout = 40 # Optional. Set to 0 to disable the application-layer heartbeat test. The value must be greater than `server.heartbeat_interval`. Default: 40 seconds
+retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: 1 second
 
 [client.transport] # The whole block is optional. Specify which transport to use
 type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
@@ -130,6 +132,7 @@ type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["
 token = "whatever" # Necessary if `client.default_token` not set
 local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
 nodelay = false # Optional. Determine whether to enable TCP_NODELAY for data transmission, if applicable, to improve the latency but decrease the bandwidth. Default: false
+retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: inherits the global config
 
 [client.services.service2] # Multiple services can be defined
 local_addr = "127.0.0.1:1082"

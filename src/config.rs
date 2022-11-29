@@ -13,6 +13,9 @@ use crate::transport::{DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_SECS, DEFAU
 const DEFAULT_HEARTBEAT_INTERVAL_SECS: u64 = 30;
 const DEFAULT_HEARTBEAT_TIMEOUT_SECS: u64 = 40;
 
+/// Client
+const DEFAULT_CLIENT_RETRY_INTERVAL_SECS: u64 = 1;
+
 /// String with Debug implementation that emits "MASKED"
 /// Used to mask sensitive strings when logging
 #[derive(Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
@@ -53,6 +56,8 @@ impl Default for TransportType {
     }
 }
 
+/// Per service config
+/// All Option are optional in configuration but must be Some value in runtime
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ClientServiceConfig {
@@ -63,6 +68,7 @@ pub struct ClientServiceConfig {
     pub local_addr: String,
     pub token: Option<MaskedString>,
     pub nodelay: Option<bool>,
+    pub retry_interval: Option<u64>,
 }
 
 impl ClientServiceConfig {
@@ -92,6 +98,8 @@ fn default_service_type() -> ServiceType {
     Default::default()
 }
 
+/// Per service config
+/// All Option are optional in configuration but must be Some value in runtime
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 #[serde(deny_unknown_fields)]
 pub struct ServerServiceConfig {
@@ -185,6 +193,10 @@ fn default_heartbeat_timeout() -> u64 {
     DEFAULT_HEARTBEAT_TIMEOUT_SECS
 }
 
+fn default_client_retry_interval() -> u64 {
+    DEFAULT_CLIENT_RETRY_INTERVAL_SECS
+}
+
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ClientConfig {
@@ -195,6 +207,8 @@ pub struct ClientConfig {
     pub transport: TransportConfig,
     #[serde(default = "default_heartbeat_timeout")]
     pub heartbeat_timeout: u64,
+    #[serde(default = "default_client_retry_interval")]
+    pub retry_interval: u64,
 }
 
 fn default_heartbeat_interval() -> u64 {
@@ -265,6 +279,9 @@ impl Config {
                 if s.token.is_none() {
                     bail!("The token of service {} is not set", name);
                 }
+            }
+            if s.retry_interval.is_none() {
+                s.retry_interval = Some(client.retry_interval);
             }
         }
 
