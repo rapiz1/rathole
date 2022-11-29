@@ -16,12 +16,13 @@ rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://g
 
 <!-- TOC -->
 
-- [Features](#features)
-- [Quickstart](#quickstart)
-- [Configuration](#configuration)
-  - [Logging](#logging)
-- [Benchmark](#benchmark)
-- [Development Status](#development-status)
+- [rathole](#rathole)
+    - [Features](#features)
+    - [Quickstart](#quickstart)
+    - [Configuration](#configuration)
+        - [Logging](#logging)
+    - [Benchmark](#benchmark)
+    - [Development Status](#development-status)
 
 <!-- /TOC -->
 
@@ -104,6 +105,7 @@ local_addr = "127.0.0.1:22" # 需要被转发的服务的地址
 remote_addr = "example.com:2333" # Necessary. The address of the server
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
 heartbeat_timeout = 40 # Optional. Set to 0 to disable the application-layer heartbeat test. The value must be greater than `server.heartbeat_interval`. Default: 40 seconds
+retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: 1 second
 
 [client.transport] # The whole block is optional. Specify which transport to use
 type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp"
@@ -159,6 +161,7 @@ type = "tcp" # Optional. Same as the client `[client.services.X.type]
 token = "whatever" # Necessary if `server.default_token` not set
 bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change.
 nodelay = false # Optional. Same as the client
+retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: inherits the global config
 
 [server.services.service2]
 bind_addr = "0.0.0.1:8082"

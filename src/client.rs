@@ -494,6 +494,9 @@ impl ControlChannelHandle {
 
         info!("Starting {}", hex::encode(digest));
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
+
+        let mut retry_backoff = run_control_chan_backoff(service.retry_interval.unwrap());
+
         let mut s = ControlChannel {
             digest,
             service,
@@ -505,7 +508,6 @@ impl ControlChannelHandle {
 
         tokio::spawn(
             async move {
-                let mut backoff = run_control_chan_backoff();
                 let mut start = Instant::now();
 
                 while let Err(err) = s
@@ -519,10 +521,10 @@ impl ControlChannelHandle {
 
                     if start.elapsed() > Duration::from_secs(3) {
                         // The client runs for at least 3 secs and then disconnects
-                        // Retry immediately
-                        backoff.reset();
-                        error!("{:#}. Retry...", err);
-                    } else if let Some(duration) = backoff.next_backoff() {
+                        retry_backoff.reset();
+                    }
+
+                    if let Some(duration) = retry_backoff.next_backoff() {
                         error!("{:#}. Retry in {:?}...", err, duration);
                         time::sleep(duration).await;
                     } else {
