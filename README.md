@@ -22,6 +22,7 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
     - [Quickstart](#quickstart)
     - [Configuration](#configuration)
         - [Logging](#logging)
+        - [Tuning](#tuning)
     - [Benchmark](#benchmark)
     - [Development Status](#development-status)
 
@@ -114,7 +115,7 @@ type = "tcp" # Optional. Possible values: ["tcp", "tls", "noise"]. Default: "tcp
 
 [client.transport.tcp] # Optional. Also affects `noise` and `tls`
 proxy = "socks5://user:passwd@127.0.0.1:1080" # Optional. The proxy used to connect to the server. `http` and `socks5` is supported.
-nodelay = false # Optional. Determine whether to enable TCP_NODELAY, if applicable, to improve the latency but decrease the bandwidth. Default: false
+nodelay = true # Optional. Determine whether to enable TCP_NODELAY, if applicable, to improve the latency but decrease the bandwidth. Default: true
 keepalive_secs = 20 # Optional. Specify `tcp_keepalive_time` in `tcp(7)`, if applicable. Default: 20 seconds
 keepalive_interval = 8 # Optional. Specify `tcp_keepalive_intvl` in `tcp(7)`, if applicable. Default: 8 seconds
 
@@ -131,7 +132,7 @@ remote_public_key = "key_encoded_in_base64" # Optional
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
 local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
-nodelay = false # Optional. Determine whether to enable TCP_NODELAY for data transmission, if applicable, to improve the latency but decrease the bandwidth. Default: false
+nodelay = true # Optional. Override the `client.transport.nodelay` per service
 retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: inherits the global config
 
 [client.services.service2] # Multiple services can be defined
@@ -146,7 +147,7 @@ heartbeat_interval = 30 # Optional. The interval between two application-layer h
 type = "tcp"
 
 [server.transport.tcp] # Same as the client
-nodelay = false
+nodelay = true
 keepalive_secs = 20
 keepalive_interval = 8
 
@@ -163,7 +164,7 @@ remote_public_key = "key_encoded_in_base64"
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
 token = "whatever" # Necessary if `server.default_token` not set
 bind_addr = "0.0.0.0:8081" # Necessary. The address of the service is exposed at. Generally only the port needs to be change.
-nodelay = false # Optional. Same as the client
+nodelay = true # Optional. Same as the client
 
 [server.services.service2]
 bind_addr = "0.0.0.1:8082"
@@ -180,6 +181,12 @@ RUST_LOG=error ./rathole config.toml
 will run `rathole` with only error level logging.
 
 If `RUST_LOG` is not present, the default logging level is `info`.
+
+### Tuning
+
+From v0.4.7, rathole enables TCP_NODELAY by default, which should benefit the latency and interactive applications like rdp, Minecraft servers. However, it slightly decreases the bandwidth.
+
+If the bandwidth is more important, TCP_NODELAY can be opted out with `nodelay = false`.
 
 ## Benchmark
 
