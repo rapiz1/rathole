@@ -217,7 +217,7 @@ impl Into<tokio_kcp::KcpConfig> for KcpConfig {
         };
         tokio_kcp::KcpConfig{
              mtu: self.mtu,
-             nodelay: nodelay,
+             nodelay,
              wnd_size: self.wnd_size,
              session_expire: self.session_expire,
              flush_write: self.flush_write,

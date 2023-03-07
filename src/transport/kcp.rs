@@ -101,7 +101,7 @@ impl Transport for KcpTransport {
         let incomming_result  = a.lock().await.accept().await.with_context(|| "Failed to accept KCP connection");
         match incomming_result {
             Ok((stream,addr)) => {
-                Result::Ok((KcpStream{ stream:stream},addr))
+                Result::Ok((KcpStream{ stream }, addr))
             }
             Err(err) => {
                 Result::Err(err)
