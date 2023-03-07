@@ -5,8 +5,8 @@ default_token = "default_token_if_not_specify"
 [client.transport]
 type = "tls" 
 [client.transport.tls]
-trusted_root = "examples/tls/ca-cert.pem"
-hostname = "0.0.0.0"
+trusted_root = "examples/tls/rootCA.crt"
+hostname = "localhost"
 
 [client.services.echo] 
 type = "udp"
