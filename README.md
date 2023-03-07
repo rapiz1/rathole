@@ -24,7 +24,7 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
         - [Logging](#logging)
         - [Tuning](#tuning)
     - [Benchmark](#benchmark)
-    - [Development Status](#development-status)
+  - [Planning](#planning)
 
 <!-- /TOC -->
 
@@ -233,13 +233,8 @@ For more details, see the separate page [Benchmark](./docs/benchmark.md).
 ![udp_bitrate](./docs/img/udp_bitrate.svg)
 ![mem](./docs/img/mem-graph.png)
 
-## Development Status
+## Planning
 
-`rathole` is under active development. A load of features is on the way:
-
-- [x] TLS support
-- [x] UDP support
-- [x] Hot reloading
 - [ ] HTTP APIs for configuration
 
 [Out of Scope](./docs/out-of-scope.md) lists features that are not planned to be implemented and why.
