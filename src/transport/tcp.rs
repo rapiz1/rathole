@@ -18,8 +18,8 @@ pub struct TcpTransport {
 #[async_trait]
 impl Transport for TcpTransport {
     type Acceptor = TcpListener;
-    type Stream = TcpStream;
     type RawStream = TcpStream;
+    type Stream = TcpStream;
 
     fn new(config: &TransportConfig) -> Result<Self> {
         Ok(TcpTransport {

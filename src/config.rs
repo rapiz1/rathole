@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Formatter};
 use std::ops::Deref;
 use std::path::Path;
+use std::{time::Duration};
 use tokio::fs;
 use url::Url;
 
@@ -48,6 +49,8 @@ pub enum TransportType {
     Tls,
     #[serde(rename = "noise")]
     Noise,
+    #[serde(rename = "kcp")]
+    Kcp,
 }
 
 impl Default for TransportType {
@@ -178,6 +181,82 @@ impl Default for TcpConfig {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub enum KcpSpeedMode {
+    Default,
+    Fastest,
+    Normal,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct KcpConfig {
+    #[serde(default = "kcp_default_mtu")]
+    pub mtu: usize,
+    #[serde(default = "kcp_default_nodelay")]
+    pub nodelay: KcpSpeedMode,
+    #[serde(default = "kcp_default_wnd_size")]
+    pub wnd_size: (u16, u16),
+    #[serde(default = "kcp_default_session_expire")]
+    pub session_expire: Duration,
+    #[serde(default = "kcp_default_flush_write")]
+    pub flush_write: bool,
+    #[serde(default = "kcp_default_flush_acks_input")]
+    pub flush_acks_input: bool,
+    #[serde(default = "kcp_default_stream")]
+    pub stream: bool,
+}
+
+impl Into<tokio_kcp::KcpConfig> for KcpConfig {
+    fn into(self) -> tokio_kcp::KcpConfig {
+        let nodelay = match self.nodelay {
+            KcpSpeedMode::Default => tokio_kcp::KcpNoDelayConfig::default(),
+            KcpSpeedMode::Normal => tokio_kcp::KcpNoDelayConfig::normal(),
+            KcpSpeedMode::Fastest => tokio_kcp::KcpNoDelayConfig::fastest(),
+        };
+        tokio_kcp::KcpConfig{
+             mtu: self.mtu,
+             nodelay: nodelay,
+             wnd_size: self.wnd_size,
+             session_expire: self.session_expire,
+             flush_write: self.flush_write,
+             flush_acks_input: self.flush_acks_input,
+             stream: self.stream,
+        }
+    }
+}
+
+fn kcp_default_mtu() -> usize {
+    1400
+}
+
+fn kcp_default_nodelay() -> KcpSpeedMode {
+    KcpSpeedMode::Fastest
+}
+
+fn kcp_default_wnd_size() -> (u16, u16) {
+    (256, 256)
+}
+
+fn kcp_default_session_expire() -> Duration {
+    Duration::from_secs(90)
+}
+
+fn kcp_default_flush_write() -> bool {
+    false
+}
+
+fn kcp_default_flush_acks_input() -> bool {
+    false
+}
+
+fn kcp_default_stream() -> bool {
+    false
+}
+
+
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Default)]
 #[serde(deny_unknown_fields)]
 pub struct TransportConfig {
@@ -187,6 +266,7 @@ pub struct TransportConfig {
     pub tcp: TcpConfig,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
+    pub kcp: Option<KcpConfig>,
 }
 
 fn default_heartbeat_timeout() -> u64 {
@@ -317,6 +397,10 @@ impl Config {
                 Ok(())
             }
             TransportType::Noise => {
+                // The check is done in transport
+                Ok(())
+            }
+            TransportType::Kcp => {
                 // The check is done in transport
                 Ok(())
             }

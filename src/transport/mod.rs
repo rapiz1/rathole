@@ -79,6 +79,11 @@ mod noise;
 #[cfg(feature = "noise")]
 pub use noise::NoiseTransport;
 
+#[cfg(feature = "kcp")]
+mod kcp;
+#[cfg(feature = "kcp")]
+pub use kcp::KcpTransport;
+
 #[derive(Debug, Clone, Copy)]
 struct Keepalive {
     // tcp_keepalive_time if the underlying protocol is TCP

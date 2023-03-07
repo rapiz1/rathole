@@ -8,7 +8,7 @@ use crate::protocol::{
     self, read_auth, read_hello, Ack, ControlChannelCmd, DataChannelCmd, Hello, UdpTraffic,
     HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{SocketOpts, TcpTransport, Transport};
+use crate::transport::{KcpTransport, SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -71,6 +71,15 @@ pub async fn run_server(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Kcp => {
+            #[cfg(feature = "kcp")]
+            {
+                let mut server = Server::<KcpTransport>::from(config).await?;
+                server.run(shutdown_rx, update_rx).await?;
+            }
+            #[cfg(not(feature = "kcp"))]
+            crate::helper::feature_not_compile("kcp")
         }
     }
 
@@ -442,7 +451,7 @@ where
                         shutdown_rx_clone,
                     )
                     .await
-                    .with_context(|| "Failed to run TCP connection pool")
+                    .with_context(|| "Failed to run UDP connection pool")
                     {
                         error!("{:#}", e);
                     }
@@ -649,6 +658,7 @@ async fn run_tcp_connection_pool<T: Transport>(
     info!("Shutdown");
     Ok(())
 }
+
 
 #[instrument(skip_all)]
 async fn run_udp_connection_pool<T: Transport>(

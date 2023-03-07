@@ -6,7 +6,7 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
+use crate::transport::{AddrMaybeCached, KcpTransport, SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use backoff::{backoff::Backoff, future::retry_notify};
@@ -61,6 +61,15 @@ pub async fn run_client(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Kcp => {
+            #[cfg(feature = "kcp")]
+            {
+                let mut client = Client::<KcpTransport>::from(config).await?;
+                client.run(shutdown_rx, update_rx).await
+            }
+            #[cfg(not(feature = "kcp"))]
+            crate::helper::feature_not_compile("kcp")
         }
     }
 }
