@@ -6,11 +6,11 @@ By default, `rathole` forwards traffic as it is. Different options can be enable
 Checkout the [example](../examples/tls)
 ### Client
 Normally, a self-signed certificate is used. In this case, the client needs to trust the CA. `trusted_root` is the path to the root CA's certificate PEM file.
-`hostname` is the hostname that the client used to validate aginst the certificate that the server presents. Note that it does not have to be the same with the `remote_addr` in `[client]`.
+`hostname` is the hostname that the client used to validate aginst the certificate that the server presents.
 ```
 [client.transport.tls]
-trusted_root = "example/tls/rootCA.crt"
-hostname = "localhost"
+trusted_root = "example/tls/ca-cert.pem"
+hostname = "0.0.0.0"
 ```
 
 ### Server
@@ -18,16 +18,8 @@ PKCS#12 archives are needed to run the server.
 
 It can be created using openssl like:
 ```
-openssl pkcs12 -export -out identity.pfx -inkey server.key -in server.crt -certfile ca_chain_certs.crt
+openssl pkcs12 -export -out identity.pfx -inkey server-key.pem -in server-cert.pem -certfile ca_chain_certs.pem
 ```
-
-Aruguments are:
-
-- `-inkey`: Server Private Key
-- `-in`: Server Certificate
-- `-certfile`: CA Certificate
-
-Creating self-signed certificate with one's own CA is a non-trival task. However, a script is provided under tls example folder for reference.
 
 ## Noise Protocol
 ### Quickstart for the Noise Protocl

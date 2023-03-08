@@ -5,8 +5,8 @@ default_token = "default_token_if_not_specify"
 [client.transport]
 type = "tls" 
 [client.transport.tls]
-trusted_root = "examples/tls/rootCA.crt"
-hostname = "localhost"
+trusted_root = "examples/tls/ca-cert.pem"
+hostname = "0.0.0.0"
 
 [client.services.echo] 
 local_addr = "127.0.0.1:8080" 

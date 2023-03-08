@@ -181,12 +181,59 @@ impl Default for TcpConfig {
     }
 }
 
+impl Default for KcpConfig {
+    fn default() -> Self {
+        let  mtu =  kcp_default_mtu();
+        let  nodelay =  kcp_default_nodelay();
+        let  wnd_size =  kcp_default_wnd_size();
+        let  session_expire =  kcp_default_session_expire();
+        let  flush_write =  kcp_default_flush_write();
+        let  flush_acks_input =  kcp_default_flush_acks_input();
+        let  stream =  kcp_default_stream();
+
+        Self {
+            mtu,
+            nodelay,
+            wnd_size,
+            session_expire,
+            flush_write,
+            flush_acks_input,
+            stream,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub enum KcpSpeedMode {
-    Default,
-    Fastest,
-    Normal,
+pub struct KcpNoDelayConfig {
+    /// Enable nodelay
+    #[serde(default = "default_kcp_nodelay_config_nodelay")]
+    pub nodelay: bool,
+    /// Internal update interval (ms)
+    #[serde(default = "default_kcp_nodelay_config_interval")]
+    pub interval: i32,
+    /// ACK number to enable fast resend
+    #[serde(default = "default_kcp_nodelay_config_resend")]
+    pub resend: i32,
+    /// Disable congetion control
+    #[serde(default = "default_kcp_nodelay_config_nc")]
+    pub nc: bool,
+}
+
+fn default_kcp_nodelay_config_nodelay() -> bool {
+    true
+}
+
+fn default_kcp_nodelay_config_interval() -> i32 {
+    100
+}
+
+fn default_kcp_nodelay_config_resend() -> i32 {
+    0
+}
+
+fn default_kcp_nodelay_config_nc() -> bool {
+    false
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
@@ -195,11 +242,11 @@ pub struct KcpConfig {
     #[serde(default = "kcp_default_mtu")]
     pub mtu: usize,
     #[serde(default = "kcp_default_nodelay")]
-    pub nodelay: KcpSpeedMode,
+    pub nodelay: KcpNoDelayConfig,
     #[serde(default = "kcp_default_wnd_size")]
     pub wnd_size: (u16, u16),
     #[serde(default = "kcp_default_session_expire")]
-    pub session_expire: Duration,
+    pub session_expire: u64,
     #[serde(default = "kcp_default_flush_write")]
     pub flush_write: bool,
     #[serde(default = "kcp_default_flush_acks_input")]
@@ -208,21 +255,29 @@ pub struct KcpConfig {
     pub stream: bool,
 }
 
-impl Into<tokio_kcp::KcpConfig> for KcpConfig {
-    fn into(self) -> tokio_kcp::KcpConfig {
-        let nodelay = match self.nodelay {
-            KcpSpeedMode::Default => tokio_kcp::KcpNoDelayConfig::default(),
-            KcpSpeedMode::Normal => tokio_kcp::KcpNoDelayConfig::normal(),
-            KcpSpeedMode::Fastest => tokio_kcp::KcpNoDelayConfig::fastest(),
-        };
+impl From<KcpNoDelayConfig> for tokio_kcp::KcpNoDelayConfig {
+    fn from(config: KcpNoDelayConfig) -> Self {
+        tokio_kcp::KcpNoDelayConfig{
+            nodelay: config.nodelay,
+            interval: config.interval,
+            resend: config.resend,
+            nc: config.nc,
+        }
+    }
+}
+
+impl From<KcpConfig> for tokio_kcp::KcpConfig {
+    fn from(config: KcpConfig) -> Self {
+        let nodelay : tokio_kcp::KcpNoDelayConfig = config.nodelay.into();
+        let session_expire = Duration::from_secs(config.session_expire);
         tokio_kcp::KcpConfig{
-             mtu: self.mtu,
-             nodelay,
-             wnd_size: self.wnd_size,
-             session_expire: self.session_expire,
-             flush_write: self.flush_write,
-             flush_acks_input: self.flush_acks_input,
-             stream: self.stream,
+            mtu: config.mtu,
+            nodelay,
+            wnd_size: config.wnd_size,
+            session_expire,
+            flush_write: config.flush_write,
+            flush_acks_input: config.flush_acks_input,
+            stream: config.stream,
         }
     }
 }
@@ -231,16 +286,21 @@ fn kcp_default_mtu() -> usize {
     1400
 }
 
-fn kcp_default_nodelay() -> KcpSpeedMode {
-    KcpSpeedMode::Fastest
+fn kcp_default_nodelay() -> KcpNoDelayConfig {
+    KcpNoDelayConfig {
+        nodelay: true,
+        interval: 100,
+        resend: 0,
+        nc: false,
+    }
 }
 
 fn kcp_default_wnd_size() -> (u16, u16) {
     (256, 256)
 }
 
-fn kcp_default_session_expire() -> Duration {
-    Duration::from_secs(90)
+fn kcp_default_session_expire() -> u64 {
+    90
 }
 
 fn kcp_default_flush_write() -> bool {
@@ -266,7 +326,8 @@ pub struct TransportConfig {
     pub tcp: TcpConfig,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
-    pub kcp: Option<KcpConfig>,
+    #[serde(default)]
+    pub kcp: KcpConfig,
 }
 
 fn default_heartbeat_timeout() -> u64 {

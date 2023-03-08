@@ -1,4 +1,3 @@
-use std::borrow::{ BorrowMut};
 use std::net::SocketAddr;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -7,7 +6,7 @@ use std::task::Context as TaskContext;
 
 use super::{AddrMaybeCached, SocketOpts, Transport};
 use crate::config::{TransportConfig};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use tokio::io;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
@@ -22,12 +21,6 @@ pub struct KcpTransport {
 
 pub struct KcpStream {
      stream: RealKcpStream
-}
-
-impl Drop for KcpStream {
-    fn drop(&mut self) {
-        drop(self.stream.borrow_mut())
-    }
 }
 
 impl AsyncRead for KcpStream {
@@ -77,12 +70,9 @@ impl Transport for KcpTransport {
     type Stream = KcpStream;
 
     fn new(config: &TransportConfig) -> Result<Self> {
-        let config = config
-            .kcp
-            .as_ref()
-            .ok_or_else(|| anyhow!("Missing kcp config"))?;
+        let config = config.clone().kcp;
         Ok(KcpTransport {
-            config: config.clone().into(),
+            config: config.into(),
         })
     }
 

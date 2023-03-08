@@ -4,7 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/rapiz1/rathole)](https://github.com/rapiz1/rathole/stargazers)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rapiz1/rathole)](https://github.com/rapiz1/rathole/releases)
-![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/rapiz1/rathole/rust.yml?branch=main)
+![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/rapiz1/rathole/Rust/main)
 [![GitHub all releases](https://img.shields.io/github/downloads/rapiz1/rathole/total)](https://github.com/rapiz1/rathole/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/rapiz1/rathole)](https://hub.docker.com/r/rapiz1/rathole)
 [![Join the chat at https://gitter.im/rapiz1/rathole](https://badges.gitter.im/rapiz1/rathole.svg)](https://gitter.im/rapiz1/rathole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -24,7 +24,7 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
         - [Logging](#logging)
         - [Tuning](#tuning)
     - [Benchmark](#benchmark)
-  - [Planning](#planning)
+    - [Development Status](#development-status)
 
 <!-- /TOC -->
 
@@ -128,6 +128,22 @@ pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
 
+[client.transport.kcp] # Necessary if `type` is "kcp"
+mtu = 1400 # Optional. Max Transmission Unit. Default value as shown
+
+# kcp nodelay config.
+# [Warning]:Do not modify nodelay parameters indiscriminately, otherwise it will easily cause network congestion and slowness
+nodelay.nodelay = true # Optional. Enable nodelay. Default value as shown
+nodelay.interval = 100 # Optional. Internal update interval (ms). Default value as shown
+nodelay.resend = 0 # Optional. ACK number to enable fast resend. Default value as shown
+nodelay.nc = false # Optional. Disable congetion control. Default value as shown
+
+wnd_size = [256,256] # Optional. window size : (snd_wnd,rcv_wnd). Default value as shown
+session_expire = 90 # Optional. Session expire duration, Default value as shown
+flush_write = false # Optional. Flush KCP state immediately after write,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+flush_acks_input = false # Optional. Flush ACKs immediately after input,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+stream = false # Optional. Stream mode,Similar to long connection mode, enabling this option will reduce connection creation overhead, but may increase latency. Default value as shown
+
 [client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
@@ -159,6 +175,22 @@ pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
 local_private_key = "key_encoded_in_base64"
 remote_public_key = "key_encoded_in_base64"
+
+[server.transport.kcp] # Necessary if `type` is "kcp"
+mtu = 1400 # Optional. Max Transmission Unit. Default value as shown
+
+# kcp nodelay config.
+# [Warning]:Do not modify nodelay parameters indiscriminately, otherwise it will easily cause network congestion and slowness
+nodelay.nodelay = true # Optional. Enable nodelay. Default value as shown
+nodelay.interval = 100 # Optional. Internal update interval (ms). Default value as shown
+nodelay.resend = 0 # Optional. ACK number to enable fast resend. Default value as shown
+nodelay.nc = false # Optional. Disable congetion control. Default value as shown
+
+wnd_size = [256,256] # Optional. window size : (snd_wnd,rcv_wnd). Default value as shown
+session_expire = 90 # Optional. Session expire duration, Default value as shown
+flush_write = false # Optional. Flush KCP state immediately after write,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+flush_acks_input = false # Optional. Flush ACKs immediately after input,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+stream = false # Optional. Stream mode,Similar to long connection mode, enabling this option will reduce connection creation overhead, but may increase latency. Default value as shown
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
@@ -201,8 +233,13 @@ For more details, see the separate page [Benchmark](./docs/benchmark.md).
 ![udp_bitrate](./docs/img/udp_bitrate.svg)
 ![mem](./docs/img/mem-graph.png)
 
-## Planning
+## Development Status
 
+`rathole` is under active development. A load of features is on the way:
+
+- [x] TLS support
+- [x] UDP support
+- [x] Hot reloading
 - [ ] HTTP APIs for configuration
 
 [Out of Scope](./docs/out-of-scope.md) lists features that are not planned to be implemented and why.

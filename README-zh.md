@@ -126,6 +126,29 @@ pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
 
+[client.transport.kcp] # Necessary if `type` is "kcp"
+mtu = 1400 # Optional. Max Transmission Unit. Default value as shown
+
+# kcp nodelay config.
+# [Warning]:Do not modify nodelay parameters indiscriminately, otherwise it will easily cause network congestion and slowness
+nodelay.nodelay = true # Optional. Enable nodelay. Default value as shown
+nodelay.interval = 100 # Optional. Internal update interval (ms). Default value as shown
+nodelay.resend = 0 # Optional. ACK number to enable fast resend. Default value as shown
+nodelay.nc = false # Optional. Disable congetion control. Default value as shown
+
+wnd_size = [256,256] # Optional. window size : (snd_wnd,rcv_wnd). Default value as shown
+session_expire = 90 # Optional. Session expire duration, Default value as shown
+flush_write = false # Optional. Flush KCP state immediately after write,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+flush_acks_input = false # Optional. Flush ACKs immediately after input,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+stream = false # Optional. Stream mode,Similar to long connection mode, enabling this option will reduce connection creation overhead, but may increase latency. Default value as shown
+
+[client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
+type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
+token = "whatever" # Necessary if `client.default_token` not set
+local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
+nodelay = true # Optional. Override the `client.transport.nodelay` per service
+retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: inherits the global config
+
 [client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
@@ -157,6 +180,29 @@ pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
 local_private_key = "key_encoded_in_base64"
 remote_public_key = "key_encoded_in_base64"
+
+[server.transport.kcp] # Necessary if `type` is "kcp"
+mtu = 1400 # Optional. Max Transmission Unit. Default value as shown
+
+# kcp nodelay config.
+# [Warning]:Do not modify nodelay parameters indiscriminately, otherwise it will easily cause network congestion and slowness
+nodelay.nodelay = true # Optional. Enable nodelay. Default value as shown
+nodelay.interval = 100 # Optional. Internal update interval (ms). Default value as shown
+nodelay.resend = 0 # Optional. ACK number to enable fast resend. Default value as shown
+nodelay.nc = false # Optional. Disable congetion control. Default value as shown
+
+wnd_size = [256,256] # Optional. window size : (snd_wnd,rcv_wnd). Default value as shown
+session_expire = 90 # Optional. Session expire duration, Default value as shown
+flush_write = false # Optional. Flush KCP state immediately after write,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+flush_acks_input = false # Optional. Flush ACKs immediately after input,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
+stream = false # Optional. Stream mode,Similar to long connection mode, enabling this option will reduce connection creation overhead, but may increase latency. Default value as shown
+
+[client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
+type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
+token = "whatever" # Necessary if `client.default_token` not set
+local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
+nodelay = true # Optional. Override the `client.transport.nodelay` per service
+retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: inherits the global config
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]
