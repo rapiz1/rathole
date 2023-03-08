@@ -190,7 +190,7 @@ flush_write = false # Optional. Flush KCP state immediately after write,Turning 
 flush_acks_input = false # Optional. Flush ACKs immediately after input,Turning on this option  will reduce network latency, but it will also take up a lot of bandwidth and reduce network throughput. Default value as shown
 stream = false # Optional. Stream mode,Similar to long connection mode, enabling this option will reduce connection creation overhead, but may increase latency. Default value as shown
 
-[client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
+[server.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
 local_addr = "127.0.0.1:1081" # Necessary. The address of the service that needs to be forwarded
