@@ -128,7 +128,7 @@ pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
 
-[client.transport.kcp] # Necessary if `type` is "kcp"
+[client.transport.kcp] # # Optional. if `type` is "kcp",you can adjust the kcp parameter by adding this section.
 mtu = 1400 # Optional. Max Transmission Unit. Default value as shown
 
 # kcp nodelay config.
@@ -176,7 +176,7 @@ pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
 local_private_key = "key_encoded_in_base64"
 remote_public_key = "key_encoded_in_base64"
 
-[server.transport.kcp] # Necessary if `type` is "kcp"
+[server.transport.kcp] # Optional. if `type` is "kcp",you can adjust the kcp parameter by adding this section.
 mtu = 1400 # Optional. Max Transmission Unit. Default value as shown
 
 # kcp nodelay config.
