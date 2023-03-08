@@ -242,6 +242,7 @@ mod tests {
                     false => None,
                 },
             };
+
             let args = Cli {
                 config_path: Some(std::path::PathBuf::new()),
                 server: t.arg_s,
