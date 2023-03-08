@@ -6,7 +6,11 @@ use crate::protocol::{
     self, read_ack, read_control_cmd, read_data_cmd, read_hello, Ack, Auth, ControlChannelCmd,
     DataChannelCmd, UdpTraffic, CURRENT_PROTO_VERSION, HASH_WIDTH_IN_BYTES,
 };
-use crate::transport::{AddrMaybeCached, KcpTransport, SocketOpts, TcpTransport, Transport};
+use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
+
+#[cfg(feature = "kcp")]
+use crate::transport::KcpTransport;
+
 use anyhow::{anyhow, bail, Context, Result};
 use backoff::ExponentialBackoff;
 use backoff::{backoff::Backoff, future::retry_notify};
