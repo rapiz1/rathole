@@ -5,8 +5,8 @@ default_token = "123"
 [client.transport]
 type = "kcp"
 
-[server.transport.kcp]
-mtu = 1400
+[server.transport.kcp] #Optional
+mtu = 1400  #Optional
 
 [server.services.foo1]
 bind_addr = "0.0.0.0:5202"
