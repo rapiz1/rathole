@@ -5,8 +5,8 @@ default_token = "123"
 [client.transport]
 type = "kcp"
 
-[server.transport.kcp]
-mtu = 1400
+[server.transport.kcp] #Optional
+mtu = 1400 #Optional
 
 [client.services.foo1]
 local_addr = "127.0.0.1:80"
