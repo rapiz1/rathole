@@ -4,6 +4,8 @@ By default, `rathole` forwards traffic as it is. Different options can be enable
 
 ## TLS
 Checkout the [example](../examples/tls)
+## KCP
+Checkout the [example](../examples/kcp)
 ### Client
 Normally, a self-signed certificate is used. In this case, the client needs to trust the CA. `trusted_root` is the path to the root CA's certificate PEM file.
 `hostname` is the hostname that the client used to validate aginst the certificate that the server presents. Note that it does not have to be the same with the `remote_addr` in `[client]`.
