@@ -255,6 +255,7 @@ pub struct KcpConfig {
     pub stream: bool,
 }
 
+#[cfg(feature = "kcp")]
 impl From<KcpNoDelayConfig> for tokio_kcp::KcpNoDelayConfig {
     fn from(config: KcpNoDelayConfig) -> Self {
         tokio_kcp::KcpNoDelayConfig{
@@ -266,6 +267,7 @@ impl From<KcpNoDelayConfig> for tokio_kcp::KcpNoDelayConfig {
     }
 }
 
+#[cfg(feature = "kcp")]
 impl From<KcpConfig> for tokio_kcp::KcpConfig {
     fn from(config: KcpConfig) -> Self {
         let nodelay : tokio_kcp::KcpNoDelayConfig = config.nodelay.into();
