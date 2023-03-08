@@ -7,7 +7,6 @@ use std::path::Path;
 use std::{time::Duration};
 use tokio::fs;
 use url::Url;
-use tokio_kcp;
 
 use crate::transport::{DEFAULT_KEEPALIVE_INTERVAL, DEFAULT_KEEPALIVE_SECS, DEFAULT_NODELAY};
 
