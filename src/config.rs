@@ -41,9 +41,10 @@ impl From<&str> for MaskedString {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug,Default, Serialize, Deserialize, Copy, Clone, PartialEq, Eq)]
 pub enum TransportType {
     #[serde(rename = "tcp")]
+    #[default]
     Tcp,
     #[serde(rename = "tls")]
     Tls,
@@ -51,12 +52,6 @@ pub enum TransportType {
     Noise,
     #[serde(rename = "kcp")]
     Kcp,
-}
-
-impl Default for TransportType {
-    fn default() -> TransportType {
-        TransportType::Tcp
-    }
 }
 
 /// Per service config
@@ -83,18 +78,13 @@ impl ClientServiceConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug,Default, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum ServiceType {
     #[serde(rename = "tcp")]
+    #[default]
     Tcp,
     #[serde(rename = "udp")]
     Udp,
-}
-
-impl Default for ServiceType {
-    fn default() -> Self {
-        ServiceType::Tcp
-    }
 }
 
 fn default_service_type() -> ServiceType {
