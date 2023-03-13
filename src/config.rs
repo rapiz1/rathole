@@ -290,8 +290,8 @@ fn kcp_default_mtu() -> usize {
 
 fn kcp_default_nodelay() -> KcpNoDelayConfig {
     KcpNoDelayConfig {
-        nodelay: true,
-        interval: 100,
+        nodelay: false,
+        interval: 40,
         resend: 0,
         nc: false,
     }
