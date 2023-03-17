@@ -145,7 +145,6 @@ async fn config_watcher(
     } else {
         env::current_dir()?.join(path)
     };
-    let parent_path = path.parent().expect("config file should have a parent dir");
     let path_clone = path.clone();
     let mut watcher =
         notify::recommended_watcher(move |res: Result<notify::Event, _>| match res {
@@ -162,7 +161,7 @@ async fn config_watcher(
             Err(e) => error!("watch error: {:#}", e),
         })?;
 
-    watcher.watch(parent_path, RecursiveMode::NonRecursive)?;
+    watcher.watch(path.as_path(), RecursiveMode::NonRecursive)?;
     info!("Start watching the config");
 
     loop {
