@@ -4,7 +4,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/rapiz1/rathole)](https://github.com/rapiz1/rathole/stargazers)
 [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/rapiz1/rathole)](https://github.com/rapiz1/rathole/releases)
-![GitHub Workflow Status (branch)](https://img.shields.io/github/workflow/status/rapiz1/rathole/Rust/main)
+![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/rapiz1/rathole/rust.yml?branch=main)
 [![GitHub all releases](https://img.shields.io/github/downloads/rapiz1/rathole/total)](https://github.com/rapiz1/rathole/releases)
 [![Docker Pulls](https://img.shields.io/docker/pulls/rapiz1/rathole)](https://hub.docker.com/r/rapiz1/rathole)
 [![Join the chat at https://gitter.im/rapiz1/rathole](https://badges.gitter.im/rapiz1/rathole.svg)](https://gitter.im/rapiz1/rathole?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -24,7 +24,7 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
         - [Logging](#logging)
         - [Tuning](#tuning)
     - [Benchmark](#benchmark)
-    - [Development Status](#development-status)
+  - [Planning](#planning)
 
 <!-- /TOC -->
 
@@ -201,13 +201,8 @@ For more details, see the separate page [Benchmark](./docs/benchmark.md).
 ![udp_bitrate](./docs/img/udp_bitrate.svg)
 ![mem](./docs/img/mem-graph.png)
 
-## Development Status
+## Planning
 
-`rathole` is under active development. A load of features is on the way:
-
-- [x] TLS support
-- [x] UDP support
-- [x] Hot reloading
 - [ ] HTTP APIs for configuration
 
 [Out of Scope](./docs/out-of-scope.md) lists features that are not planned to be implemented and why.
