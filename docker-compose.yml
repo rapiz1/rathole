@@ -1,0 +1,10 @@
+version: '3.3'
+services:
+  rathole:
+    volumes:
+    - config:/config/
+    image: rapiz1/rathole
+    command: --client /config/config.toml
+    network_mode: "host"
+volumes:
+  config:
