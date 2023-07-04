@@ -6,8 +6,12 @@ After=network.target
 Type=simple
 Restart=on-failure
 RestartSec=5s
-ExecStart=/usr/bin/rathole -c /etc/rathole/%i.toml
 LimitNOFILE=1048576
+
+# with root
+ExecStart=/usr/bin/rathole -c /etc/rathole/%i.toml
+# without root
+# ExecStart=%h/.local/bin/rathole -c %h/.local/etc/rathole/%i.toml
 
 [Install]
 WantedBy=multi-user.target
