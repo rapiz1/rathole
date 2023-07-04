@@ -4,7 +4,6 @@ After=network.target
 
 [Service]
 Type=simple
-DynamicUser=yes
 Restart=on-failure
 RestartSec=5s
 ExecStart=/usr/bin/rathole /etc/rathole/%i.toml

@@ -9,6 +9,8 @@ For the naming of the example, `ratholes` stands for `rathole --server`, and `ra
 
 Assuming that `rathole` is installed in `/usr/bin/rathole`, and the configuration file is in `/etc/rathole/app1.toml`, the following steps shows how to run an instance of `rathole --server`.
 
+For security, it is suggested to store configuration files under `/etc/rathole` with permission `600`, that is, only the root user can read the file, preventing arbitrary users on the system from accessing the secret tokens.
+
 1. Create a service file.
 
 ```bash
