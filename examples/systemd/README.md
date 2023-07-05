@@ -69,6 +69,6 @@ systemctl --user enable ratholes@app1 --now
 
 ### Run multiple services
 
-To run multiple services at once, simply add another configuration, say `app2` under `/etc/rathole` (`~/.local/etc/rathole` for non-root), then run `sudo systemctl enable ratholes@app1 --now` (`systemctl --user enable ratholes@app2 --now` for non-root) to start an instance for that configuration.
+To run multiple services at once, simply add another configuration, say `app2.toml` under `/etc/rathole` (`~/.local/etc/rathole` for non-root), then run `sudo systemctl enable ratholes@app2 --now` (`systemctl --user enable ratholes@app2 --now` for non-root) to start an instance for that configuration.
 
 The same applies to `ratholec@.service` for `rathole --client` and `rathole@.service` for `rathole`.
