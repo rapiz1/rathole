@@ -4,11 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-DynamicUser=yes
 Restart=on-failure
 RestartSec=5s
-ExecStart=/usr/bin/rathole -c /etc/rathole/rathole.toml
 LimitNOFILE=1048576
+
+# with root
+ExecStart=/usr/bin/rathole -c /etc/rathole/rathole.toml
+# without root
+# ExecStart=%h/.local/bin/rathole -c %h/.local/etc/rathole/rathole.toml
 
 [Install]
 WantedBy=multi-user.target
