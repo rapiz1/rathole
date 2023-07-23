@@ -449,7 +449,7 @@ impl<T: 'static + Transport> ControlChannel<T> {
                     let s = toml::to_string(&self.service).unwrap();
                     let buf = s.as_bytes();
                     conn.write_u32(buf.len() as u32).await?;
-                    conn.write_all(&buf).await?;
+                    conn.write_all(buf).await?;
                     conn.flush().await?;
                 }
                 v => {
