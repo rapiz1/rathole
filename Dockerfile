@@ -1,5 +1,5 @@
-FROM rust:alpine as builder
-RUN apk add --no-cache musl-dev openssl openssl-dev pkgconfig
+FROM alpine as builder
+RUN apk add --no-cache cargo musl-dev openssl openssl-dev pkgconfig
 WORKDIR /home/rust/src
 COPY . .
 RUN cargo build --locked --release --features client,server,noise,hot-reload
