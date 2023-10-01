@@ -59,6 +59,9 @@ async fn tcp() -> Result<()> {
     #[cfg(not(target_os = "macos"))]
     test("tests/for_tcp/tls_transport.toml", Type::Tcp).await?;
     test("tests/for_tcp/noise_transport.toml", Type::Tcp).await?;
+    test("tests/for_tcp/websocket_transport.toml", Type::Tcp).await?;
+    #[cfg(not(target_os = "macos"))]
+    test("tests/for_tcp/websocket_tls_transport.toml", Type::Tcp).await?;
 
     Ok(())
 }
@@ -86,6 +89,9 @@ async fn udp() -> Result<()> {
     #[cfg(not(target_os = "macos"))]
     test("tests/for_udp/tls_transport.toml", Type::Udp).await?;
     test("tests/for_udp/noise_transport.toml", Type::Udp).await?;
+    test("tests/for_udp/websocket_transport.toml", Type::Udp).await?;
+    #[cfg(not(target_os = "macos"))]
+    test("tests/for_udp/websocket_tls_transport.toml", Type::Udp).await?;
 
     Ok(())
 }

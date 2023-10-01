@@ -49,6 +49,8 @@ pub enum TransportType {
     Tls,
     #[serde(rename = "noise")]
     Noise,
+    #[serde(rename = "websocket")]
+    Websocket,
 }
 
 /// Per service config
@@ -75,8 +77,7 @@ impl ClientServiceConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ServiceType {
     #[serde(rename = "tcp")]
     #[default]
@@ -84,8 +85,6 @@ pub enum ServiceType {
     #[serde(rename = "udp")]
     Udp,
 }
-
-
 
 fn default_service_type() -> ServiceType {
     Default::default()
@@ -136,6 +135,12 @@ pub struct NoiseConfig {
     // TODO: Maybe psk can be added
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct WebsocketConfig {
+    pub tls: bool,
+}
+
 fn default_nodelay() -> bool {
     DEFAULT_NODELAY
 }
@@ -180,6 +185,7 @@ pub struct TransportConfig {
     pub tcp: TcpConfig,
     pub tls: Option<TlsConfig>,
     pub noise: Option<NoiseConfig>,
+    pub websocket: Option<WebsocketConfig>,
 }
 
 fn default_heartbeat_timeout() -> u64 {
@@ -313,6 +319,7 @@ impl Config {
                 // The check is done in transport
                 Ok(())
             }
+            TransportType::Websocket => Ok(()),
         }
     }
 
