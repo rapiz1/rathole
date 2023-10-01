@@ -26,6 +26,10 @@ websocket = ["tokio-tungstenite", "tokio-util", "futures-core", "futures-sink", 
 # Configuration hot-reload support
 hot-reload = ["notify"]
 
+# Default feature releasing embedded devices
+# Cross-compiling with tls is hard. So we don't :(
+embedded = ["server", "client", "hot-reload", "noise"]
+
 # Feature to enable tokio-console. Disabled by default.
 # Don't enable it unless for debugging purposes.
 console = ["console-subscriber", "tokio/tracing"]

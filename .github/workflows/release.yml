@@ -68,11 +68,14 @@ jobs:
           profile: minimal
           toolchain: stable
       - name: Install cross
-        run: cargo install --version 0.1.16 cross
+        run: cargo install --version 0.2.5 cross
+      - name: Use Compile Features For Embedded
+        if: contains(matrix.target, 'mips') || contains(matrix.target, 'arm') 
+        run: echo "RATHOLE_FEATURES=embedded" >> $GITHUB_ENV
       - name: Run tests
-        run: cross test --release --target ${{ matrix.target }} --verbose
+        run: cross test --release --target ${{ matrix.target }} --verbose --features ${RATHOLE_FEATURES:-default}
       - name: Build release
-        run: cross build --release --target ${{ matrix.target }}
+        run: cross build --release --target ${{ matrix.target }} --features ${RATHOLE_FEATURES:-default}
       - name: Run UPX
         # Upx may not support some platforms. Ignore the errors
         continue-on-error: true
