@@ -79,6 +79,11 @@ mod noise;
 #[cfg(feature = "noise")]
 pub use noise::NoiseTransport;
 
+#[cfg(feature = "websocket")]
+mod websocket;
+#[cfg(feature = "websocket")]
+pub use websocket::WebsocketTransport;
+
 #[derive(Debug, Clone, Copy)]
 struct Keepalive {
     // tcp_keepalive_time if the underlying protocol is TCP

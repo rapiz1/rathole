@@ -27,6 +27,8 @@ use tracing::{debug, error, info, info_span, instrument, warn, Instrument, Span}
 use crate::transport::NoiseTransport;
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
+#[cfg(feature = "websocket")]
+use crate::transport::WebsocketTransport;
 
 type ServiceDigest = protocol::Digest; // SHA256 of a service name
 type Nonce = protocol::Digest; // Also called `session_key`
@@ -71,6 +73,15 @@ pub async fn run_server(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Websocket => {
+            #[cfg(feature = "websocket")]
+            {
+                let mut server = Server::<WebsocketTransport>::from(config).await?;
+                server.run(shutdown_rx, update_rx).await?;
+            }
+            #[cfg(not(feature = "websocket"))]
+            crate::helper::feature_not_compile("websocket")
         }
     }
 
