@@ -17,20 +17,20 @@ rathole，类似于 [frp](https://github.com/fatedier/frp) 和 [ngrok](https://g
 <!-- TOC -->
 
 - [rathole](#rathole)
-    - [Features](#features)
-    - [Quickstart](#quickstart)
-    - [Configuration](#configuration)
-        - [Logging](#logging)
-        - [Tuning](#tuning)
-    - [Benchmark](#benchmark)
-    - [Development Status](#development-status)
+  - [Features](#features)
+  - [Quickstart](#quickstart)
+  - [Configuration](#configuration)
+    - [Logging](#logging)
+    - [Tuning](#tuning)
+  - [Benchmark](#benchmark)
+  - [Development Status](#development-status)
 
 <!-- /TOC -->
 
 ## Features
 
-- **高性能** 具有更高的吞吐量，高并发下更稳定。见[Benchmark](#Benchmark)
-- **低资源消耗** 内存占用远低于同类工具。见[Benchmark](#Benchmark)。[二进制文件最小](docs/build-guide.md)可以到 **~500KiB**，可以部署在嵌入式设备如路由器上。
+- **高性能** 具有更高的吞吐量，高并发下更稳定。见[Benchmark](#benchmark)
+- **低资源消耗** 内存占用远低于同类工具。见[Benchmark](#benchmark)。[二进制文件最小](docs/build-guide.md)可以到 **~500KiB**，可以部署在嵌入式设备如路由器上。
 - **安全性** 每个服务单独强制鉴权。Server 和 Client 负责各自的配置。使用 Noise Protocol 可以简单地配置传输加密，而不需要自签证书。同时也支持 TLS。
 - **热重载** 支持配置文件热重载，动态修改端口转发服务。HTTP API 正在开发中。
 
@@ -91,7 +91,7 @@ local_addr = "127.0.0.1:22" # 需要被转发的服务的地址
 
 ## Configuration
 
-如果只有一个 `[server]` 和 `[client]` 块存在的话，`rathole` 可以根据配置文件的内容自动决定在服务器模式或客户端模式下运行，就像 [Quickstart](#Quickstart) 中的例子。
+如果只有一个 `[server]` 和 `[client]` 块存在的话，`rathole` 可以根据配置文件的内容自动决定在服务器模式或客户端模式下运行，就像 [Quickstart](#quickstart) 中的例子。
 
 但 `[client]` 和 `[server]` 块也可以放在一个文件中。然后在服务器端，运行 `rathole --server config.toml`。在客户端，运行 `rathole --client config.toml` 来明确告诉 `rathole` 运行模式。
 
@@ -126,6 +126,9 @@ pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
 
+[client.transport.websocket] # Necessary if `type` is "websocket"
+tls = true # If `true` then it will use settings in `client.transport.tls`
+
 [client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
@@ -157,6 +160,9 @@ pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
 local_private_key = "key_encoded_in_base64"
 remote_public_key = "key_encoded_in_base64"
+
+[server.transport.websocket] # Necessary if `type` is "websocket"
+tls = true # If `true` then it will use settings in `server.transport.tls`
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]

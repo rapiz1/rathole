@@ -18,20 +18,20 @@ rathole, like [frp](https://github.com/fatedier/frp) and [ngrok](https://github.
 <!-- TOC -->
 
 - [rathole](#rathole)
-    - [Features](#features)
-    - [Quickstart](#quickstart)
-    - [Configuration](#configuration)
-        - [Logging](#logging)
-        - [Tuning](#tuning)
-    - [Benchmark](#benchmark)
+  - [Features](#features)
+  - [Quickstart](#quickstart)
+  - [Configuration](#configuration)
+    - [Logging](#logging)
+    - [Tuning](#tuning)
+  - [Benchmark](#benchmark)
   - [Planning](#planning)
 
 <!-- /TOC -->
 
 ## Features
 
-- **High Performance** Much higher throughput can be achieved than frp, and more stable when handling a large volume of connections. See [Benchmark](#Benchmark)
-- **Low Resource Consumption** Consumes much fewer memory than similar tools. See [Benchmark](#Benchmark). [The binary can be](docs/build-guide.md) **as small as ~500KiB** to fit the constraints of devices, like embedded devices as routers.
+- **High Performance** Much higher throughput can be achieved than frp, and more stable when handling a large volume of connections. See [Benchmark](#benchmark)
+- **Low Resource Consumption** Consumes much fewer memory than similar tools. See [Benchmark](#benchmark). [The binary can be](docs/build-guide.md) **as small as ~500KiB** to fit the constraints of devices, like embedded devices as routers.
 - **Security** Tokens of services are mandatory and service-wise. The server and clients are responsible for their own configs. With the optional Noise Protocol, encryption can be configured at ease. No need to create a self-signed certificate! TLS is also supported.
 - **Hot Reload** Services can be added or removed dynamically by hot-reloading the configuration file. HTTP API is WIP.
 
@@ -93,7 +93,7 @@ To run `rathole` run as a background service on Linux, checkout the [systemd exa
 
 ## Configuration
 
-`rathole` can automatically determine to run in the server mode or the client mode, according to the content of the configuration file, if only one of `[server]` and `[client]` block is present, like the example in [Quickstart](#Quickstart).
+`rathole` can automatically determine to run in the server mode or the client mode, according to the content of the configuration file, if only one of `[server]` and `[client]` block is present, like the example in [Quickstart](#quickstart).
 
 But the `[client]` and `[server]` block can also be put in one file. Then on the server side, run `rathole --server config.toml` and on the client side, run `rathole --client config.toml` to explicitly tell `rathole` the running mode.
 
@@ -128,6 +128,9 @@ pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s" # Optional. Default value as shown
 local_private_key = "key_encoded_in_base64" # Optional
 remote_public_key = "key_encoded_in_base64" # Optional
 
+[client.transport.websocket] # Necessary if `type` is "websocket"
+tls = true # If `true` then it will use settings in `client.transport.tls`
+
 [client.services.service1] # A service that needs forwarding. The name `service1` can change arbitrarily, as long as identical to the name in the server's configuration
 type = "tcp" # Optional. The protocol that needs forwarding. Possible values: ["tcp", "udp"]. Default: "tcp"
 token = "whatever" # Necessary if `client.default_token` not set
@@ -159,6 +162,9 @@ pkcs12_password = "password" # Necessary. Password of the pkcs12 file
 pattern = "Noise_NK_25519_ChaChaPoly_BLAKE2s"
 local_private_key = "key_encoded_in_base64"
 remote_public_key = "key_encoded_in_base64"
+
+[server.transport.websocket] # Necessary if `type` is "websocket"
+tls = true # If `true` then it will use settings in `server.transport.tls`
 
 [server.services.service1] # The service name must be identical to the client side
 type = "tcp" # Optional. Same as the client `[client.services.X.type]

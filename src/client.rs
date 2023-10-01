@@ -24,6 +24,8 @@ use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 use crate::transport::NoiseTransport;
 #[cfg(feature = "tls")]
 use crate::transport::TlsTransport;
+#[cfg(feature = "websocket")]
+use crate::transport::WebsocketTransport;
 
 use crate::constants::{run_control_chan_backoff, UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
 
@@ -61,6 +63,15 @@ pub async fn run_client(
             }
             #[cfg(not(feature = "noise"))]
             crate::helper::feature_not_compile("noise")
+        }
+        TransportType::Websocket => {
+            #[cfg(feature = "websocket")]
+            {
+                let mut client = Client::<WebsocketTransport>::from(config).await?;
+                client.run(shutdown_rx, update_rx).await
+            }
+            #[cfg(not(feature = "websocket"))]
+            crate::helper::feature_not_compile("websocket")
         }
     }
 }
