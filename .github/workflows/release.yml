@@ -66,6 +66,11 @@ jobs:
             target: x86_64-apple-darwin
             exe: rathole
             cross: false
+          
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            exe: rathole
+            cross: false
 
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -92,7 +97,7 @@ jobs:
         if: matrix.cross == false
         run: rustup target add ${{ matrix.target }}
       - name: Run tests
-        if: matrix.cross == false
+        if: matrix.cross == false && matrix.target != 'aarch64-apple-darwin'
         run: cargo test --release --target ${{ matrix.target }} --verbose 
       - name: Build release
         if: matrix.cross == false 
