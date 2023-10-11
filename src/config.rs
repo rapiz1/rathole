@@ -63,7 +63,7 @@ pub struct ClientServiceConfig {
     #[serde(skip)]
     pub name: String,
     pub local_addr: String,
-    pub recommend_blind_addr: Option<String>, 
+    pub recommend_bind_addr: Option<String>, 
     pub token: Option<MaskedString>,
     pub nodelay: Option<bool>,
     pub retry_interval: Option<u64>,

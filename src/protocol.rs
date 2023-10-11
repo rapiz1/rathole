@@ -1,6 +1,6 @@
 pub const HASH_WIDTH_IN_BYTES: usize = 32;
 
-use anyhow::{bail, Context, Result, anyhow};
+use anyhow::{bail, Context, Result};
 use bytes::{Bytes, BytesMut};
 use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
@@ -227,9 +227,9 @@ pub async fn read_server_service_config_from_client<T: AsyncRead + AsyncWrite + 
     let config: ClientServiceConfig = toml::from_str(&String::from_utf8(buf)?[..]).with_context(|| "Failed to parse the config")?;
     Ok(
         ServerServiceConfig{
-            bind_addr: match config.recommend_blind_addr {
+            bind_addr: match config.recommend_bind_addr {
                 Some(bind_addr) => bind_addr,
-                None => return Err(anyhow!(format!("Expect 'recommend_blind_addr' in {}", config.name))),
+                None => return Err(anyhow::anyhow!(format!("Expect 'recommend_bind_addr' in {}", config.name))),
             },
             service_type: config.service_type,
             name: config.name,
