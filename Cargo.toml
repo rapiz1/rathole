@@ -85,7 +85,7 @@ tokio-util = { version="0.7.9", optional = true, features = ["io"] }
 futures-core = { version="0.3.28", optional = true  }
 futures-sink = { version="0.3.28", optional = true }
 
-[target.'cfg(target_env = "musl").dependencies]
+[target.'cfg(target_env = "musl")'.dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
 
 [build-dependencies]
