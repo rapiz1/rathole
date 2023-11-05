@@ -6,6 +6,7 @@ To use default build settings, run:
 ```
 cargo build --release
 ```
+You may need to pre-install [openssl](https://docs.rs/openssl/latest/openssl/index.html) dependencies in Unix-like systems.
 
 ## Customize the build
 `rathole` comes with lots of *crate features* that determine whether a certain feature will be compiled or not. Supported features can be checked out in `[features]` of [Cargo.toml](../Cargo.toml).
