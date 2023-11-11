@@ -342,8 +342,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
-    use std::path::PathBuf;
+    use std::{fs, path::PathBuf};
 
     use anyhow::Result;
 

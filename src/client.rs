@@ -8,9 +8,8 @@ use crate::protocol::{
 };
 use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
-use backoff::backoff::Backoff;
-use backoff::future::retry_notify;
 use backoff::ExponentialBackoff;
+use backoff::{backoff::Backoff, future::retry_notify};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::net::SocketAddr;
