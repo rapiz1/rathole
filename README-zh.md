@@ -104,6 +104,7 @@ local_addr = "127.0.0.1:22" # 需要被转发的服务的地址
 ```toml
 [client]
 remote_addr = "example.com:2333" # Necessary. The address of the server
+# remote_addr = "foo.com:2333,bar.com:3332" # Multiple server addresses, this is a preview feature and address changes cannot be hot loaded now
 default_token = "default_token_if_not_specify" # Optional. The default token of services, if they don't define their own ones
 heartbeat_timeout = 40 # Optional. Set to 0 to disable the application-layer heartbeat test. The value must be greater than `server.heartbeat_interval`. Default: 40 seconds
 retry_interval = 1 # Optional. The interval between retry to connect to the server. Default: 1 second
