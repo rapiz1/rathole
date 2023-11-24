@@ -104,15 +104,18 @@ impl<T: 'static + Transport> Client<T> {
         mut shutdown_rx: broadcast::Receiver<bool>,
         mut update_rx: mpsc::Receiver<ConfigChange>,
     ) -> Result<()> {
-        for (name, config) in &self.config.services {
-            // Create a control channel for each service defined
-            let handle = ControlChannelHandle::new(
-                (*config).clone(),
-                self.config.remote_addr.clone(),
-                self.transport.clone(),
-                self.config.heartbeat_timeout,
-            );
-            self.service_handles.insert(name.clone(), handle);
+        for remote_addr in self.config.remote_addr.split(",") {
+            for (name, config) in &self.config.services {
+                // Create a control channel for each service defined
+                let handle = ControlChannelHandle::new(
+                    (*config).clone(),
+                    remote_addr.to_string(),
+                    self.transport.clone(),
+                    self.config.heartbeat_timeout,
+                );
+                let full_name = remote_addr.to_string() + "," + name;
+                self.service_handles.insert(full_name, handle);
+            }
         }
 
         // Wait for the shutdown signal
@@ -147,17 +150,22 @@ impl<T: 'static + Transport> Client<T> {
         match e {
             ConfigChange::ClientChange(client_change) => match client_change {
                 ClientServiceChange::Add(cfg) => {
-                    let name = cfg.name.clone();
-                    let handle = ControlChannelHandle::new(
-                        cfg,
-                        self.config.remote_addr.clone(),
-                        self.transport.clone(),
-                        self.config.heartbeat_timeout,
-                    );
-                    let _ = self.service_handles.insert(name, handle);
+                    for remote_addr in self.config.remote_addr.split(",") {
+                        let handle = ControlChannelHandle::new(
+                            cfg.clone(),
+                            remote_addr.to_string(),
+                            self.transport.clone(),
+                            self.config.heartbeat_timeout,
+                        );
+                        let full_name = remote_addr.to_string() + "," + &cfg.name;
+                        let _ = self.service_handles.insert(full_name, handle);
+                    }
                 }
                 ClientServiceChange::Delete(s) => {
-                    let _ = self.service_handles.remove(&s);
+                    for remote_addr in self.config.remote_addr.split(",") {
+                        let full_name = remote_addr.to_string() + "," + &s;
+                        let _ = self.service_handles.remove(&full_name);
+                    }
                 }
             },
             ignored => warn!("Ignored {:?} since running as a client", ignored),
