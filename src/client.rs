@@ -104,7 +104,7 @@ impl<T: 'static + Transport> Client<T> {
         mut shutdown_rx: broadcast::Receiver<bool>,
         mut update_rx: mpsc::Receiver<ConfigChange>,
     ) -> Result<()> {
-        for remote_addr in self.config.remote_addr.split(",") {
+        for remote_addr in self.config.remote_addr.split(',') {
             for (name, config) in &self.config.services {
                 // Create a control channel for each service defined
                 let handle = ControlChannelHandle::new(
@@ -150,7 +150,7 @@ impl<T: 'static + Transport> Client<T> {
         match e {
             ConfigChange::ClientChange(client_change) => match client_change {
                 ClientServiceChange::Add(cfg) => {
-                    for remote_addr in self.config.remote_addr.split(",") {
+                    for remote_addr in self.config.remote_addr.split(',') {
                         let handle = ControlChannelHandle::new(
                             cfg.clone(),
                             remote_addr.to_string(),
@@ -162,7 +162,7 @@ impl<T: 'static + Transport> Client<T> {
                     }
                 }
                 ClientServiceChange::Delete(s) => {
-                    for remote_addr in self.config.remote_addr.split(",") {
+                    for remote_addr in self.config.remote_addr.split(',') {
                         let full_name = remote_addr.to_string() + "," + &s;
                         let _ = self.service_handles.remove(&full_name);
                     }
