@@ -1,7 +1,7 @@
 use crate::config::{Config, ServerConfig, ServerServiceConfig, ServiceType, TransportType};
 use crate::config_watcher::{ConfigChange, ServerServiceChange};
 use crate::constants::{listen_backoff, UDP_BUFFER_SIZE};
-use crate::helper::retry_notify_with_deadline;
+use crate::helper::{retry_notify_with_deadline, write_and_flush};
 use crate::multi_map::MultiMap;
 use crate::protocol::Hello::{ControlChannelHello, DataChannelHello};
 use crate::protocol::{
@@ -498,14 +498,9 @@ struct ControlChannel<T: Transport> {
 
 impl<T: Transport> ControlChannel<T> {
     async fn write_and_flush(&mut self, data: &[u8]) -> Result<()> {
-        self.conn
-            .write_all(data)
+        write_and_flush(&mut self.conn, data)
             .await
             .with_context(|| "Failed to write control cmds")?;
-        self.conn
-            .flush()
-            .await
-            .with_context(|| "Failed to flush control cmds")?;
         Ok(())
     }
     // Run a control channel
@@ -640,7 +635,7 @@ async fn run_tcp_connection_pool<T: Transport>(
     'pool: while let Some(mut visitor) = visitor_rx.recv().await {
         loop {
             if let Some(mut ch) = data_ch_rx.recv().await {
-                if ch.write_all(&cmd).await.is_ok() {
+                if write_and_flush(&mut ch, &cmd).await.is_ok() {
                     tokio::spawn(async move {
                         let _ = copy_bidirectional(&mut ch, &mut visitor).await;
                     });
@@ -690,7 +685,7 @@ async fn run_udp_connection_pool<T: Transport>(
         .recv()
         .await
         .ok_or_else(|| anyhow!("No available data channels"))?;
-    conn.write_all(&cmd).await?;
+    write_and_flush(&mut conn, &cmd).await?;
 
     let mut buf = [0u8; UDP_BUFFER_SIZE];
     loop {
