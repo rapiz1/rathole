@@ -1,4 +1,4 @@
-use crate::config::{ClientConfig, ClientServiceConfig, Config, ServiceType, TransportType};
+use crate::config::{ClientConfig, ClientServerConfig, ClientServiceConfig, Config, ServiceType, TransportType};
 use crate::config_watcher::{ClientServiceChange, ConfigChange};
 use crate::helper::udp_connect;
 use crate::protocol::Hello::{self, *};
@@ -35,21 +35,23 @@ pub async fn run_client(
     shutdown_rx: broadcast::Receiver<bool>,
     update_rx: mpsc::Receiver<ConfigChange>,
 ) -> Result<()> {
-    let config = config.client.ok_or_else(|| {
+    let client_config = config.client.ok_or_else(|| {
         anyhow!(
         "Try to run as a client, but the configuration is missing. Please add the `[client]` block"
     )
     })?;
 
-    match config.transport.transport_type {
+    let servers_config = config.servers.unwrap_or_else(|| HashMap::new());
+
+    match client_config.transport.transport_type {
         TransportType::Tcp => {
-            let mut client = Client::<TcpTransport>::from(config).await?;
+            let mut client = Client::<TcpTransport>::from(client_config, servers_config).await?;
             client.run(shutdown_rx, update_rx).await
         }
         TransportType::Tls => {
             #[cfg(feature = "tls")]
             {
-                let mut client = Client::<TlsTransport>::from(config).await?;
+                let mut client = Client::<TlsTransport>::from(client_config, servers_config).await?;
                 client.run(shutdown_rx, update_rx).await
             }
             #[cfg(not(feature = "tls"))]
@@ -58,7 +60,7 @@ pub async fn run_client(
         TransportType::Noise => {
             #[cfg(feature = "noise")]
             {
-                let mut client = Client::<NoiseTransport>::from(config).await?;
+                let mut client = Client::<NoiseTransport>::from(client_config, servers_config).await?;
                 client.run(shutdown_rx, update_rx).await
             }
             #[cfg(not(feature = "noise"))]
@@ -67,7 +69,7 @@ pub async fn run_client(
         TransportType::Websocket => {
             #[cfg(feature = "websocket")]
             {
-                let mut client = Client::<WebsocketTransport>::from(config).await?;
+                let mut client = Client::<WebsocketTransport>::from(client_config, servers_config).await?;
                 client.run(shutdown_rx, update_rx).await
             }
             #[cfg(not(feature = "websocket"))]
@@ -82,17 +84,19 @@ type Nonce = protocol::Digest;
 // Holds the state of a client
 struct Client<T: Transport> {
     config: ClientConfig,
+    servers: HashMap<String, ClientServerConfig>,
     service_handles: HashMap<String, ControlChannelHandle>,
     transport: Arc<T>,
 }
 
 impl<T: 'static + Transport> Client<T> {
     // Create a Client from `[client]` config block
-    async fn from(config: ClientConfig) -> Result<Client<T>> {
+    async fn from(config: ClientConfig, servers: HashMap<String, ClientServerConfig>) -> Result<Client<T>> {
         let transport =
             Arc::new(T::new(&config.transport).with_context(|| "Failed to create the transport")?);
         Ok(Client {
             config,
+            servers,
             service_handles: HashMap::new(),
             transport,
         })
@@ -104,16 +108,18 @@ impl<T: 'static + Transport> Client<T> {
         mut shutdown_rx: broadcast::Receiver<bool>,
         mut update_rx: mpsc::Receiver<ConfigChange>,
     ) -> Result<()> {
-        for remote_addr in self.config.remote_addr.split(',') {
-            for (name, config) in &self.config.services {
+        for (server_name, server_config) in self.servers.iter() {
+            info!("server_name={}, server_config={:?}", server_name, server_config);
+            let remote_addr = &server_config.remote_addr;
+            for (service_name, service_config) in &self.config.services {
                 // Create a control channel for each service defined
                 let handle = ControlChannelHandle::new(
-                    (*config).clone(),
+                    (*service_config).clone(),
                     remote_addr.to_string(),
                     self.transport.clone(),
                     self.config.heartbeat_timeout,
                 );
-                let full_name = remote_addr.to_string() + "," + name;
+                let full_name = server_name.to_string() + "," + service_name;
                 self.service_handles.insert(full_name, handle);
             }
         }
@@ -150,20 +156,23 @@ impl<T: 'static + Transport> Client<T> {
         match e {
             ConfigChange::ClientChange(client_change) => match client_change {
                 ClientServiceChange::Add(cfg) => {
-                    for remote_addr in self.config.remote_addr.split(',') {
+                    for (server_name, server_config) in self.servers.iter() {
+                        info!("server_name={}, server_config={:?}", server_name, server_config);
+                        let remote_addr = &server_config.remote_addr;
                         let handle = ControlChannelHandle::new(
                             cfg.clone(),
                             remote_addr.to_string(),
                             self.transport.clone(),
                             self.config.heartbeat_timeout,
                         );
-                        let full_name = remote_addr.to_string() + "," + &cfg.name;
+                        let full_name = server_name.to_string() + "," + &cfg.name;
                         let _ = self.service_handles.insert(full_name, handle);
                     }
                 }
                 ClientServiceChange::Delete(s) => {
-                    for remote_addr in self.config.remote_addr.split(',') {
-                        let full_name = remote_addr.to_string() + "," + &s;
+                    for (server_name, server_config) in self.servers.iter() {
+                        info!("server_name={}, server_config={:?}", server_name, server_config);
+                        let full_name = server_name.to_string() + "," + &s;
                         let _ = self.service_handles.remove(&full_name);
                     }
                 }

@@ -199,9 +199,23 @@ fn default_client_retry_interval() -> u64 {
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ClientConfig {
+    pub name: Option<String>,
     pub remote_addr: String,
     pub default_token: Option<MaskedString>,
     pub services: HashMap<String, ClientServiceConfig>,
+    #[serde(default)]
+    pub transport: TransportConfig,
+    #[serde(default = "default_heartbeat_timeout")]
+    pub heartbeat_timeout: u64,
+    #[serde(default = "default_client_retry_interval")]
+    pub retry_interval: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct ClientServerConfig {
+    pub remote_addr: String,
+    pub default_token: Option<MaskedString>,
     #[serde(default)]
     pub transport: TransportConfig,
     #[serde(default = "default_heartbeat_timeout")]
@@ -239,6 +253,7 @@ pub struct Config {
     pub server: Option<ServerConfig>,
     pub proxies: Option<HashMap<String, HashMap<String, ProxyConfig>>>,
     pub client: Option<ClientConfig>,
+    pub servers: Option<HashMap<String, ClientServerConfig>>,
 }
 
 impl Config {
