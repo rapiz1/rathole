@@ -226,10 +226,18 @@ pub struct ServerConfig {
     pub heartbeat_interval: u64,
 }
 
+#[derive(Debug, Serialize, Deserialize, Default, PartialEq, Eq, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct ProxyConfig {
+    pub bind_addr: String,
+    pub local_addr: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub server: Option<ServerConfig>,
+    pub proxies: Option<HashMap<String, HashMap<String, ProxyConfig>>>,
     pub client: Option<ClientConfig>,
 }
 

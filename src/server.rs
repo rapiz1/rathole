@@ -1,4 +1,4 @@
-use crate::config::{Config, ServerConfig, ServerServiceConfig, ServiceType, TransportType};
+use crate::config::{Config, ProxyConfig, ServerConfig, ServerServiceConfig, ServiceType, TransportType};
 use crate::config_watcher::{ConfigChange, ServerServiceChange};
 use crate::constants::{listen_backoff, UDP_BUFFER_SIZE};
 use crate::helper::retry_notify_with_deadline;
@@ -44,22 +44,24 @@ pub async fn run_server(
     shutdown_rx: broadcast::Receiver<bool>,
     update_rx: mpsc::Receiver<ConfigChange>,
 ) -> Result<()> {
-    let config = match config.server {
+    let server_config = match config.server {
             Some(config) => config,
             None => {
                 return Err(anyhow!("Try to run as a server, but the configuration is missing. Please add the `[server]` block"))
             }
         };
 
-    match config.transport.transport_type {
+    let proxy_config = config.proxies.unwrap_or_else(|| HashMap::new());
+
+    match server_config.transport.transport_type {
         TransportType::Tcp => {
-            let mut server = Server::<TcpTransport>::from(config).await?;
+            let mut server = Server::<TcpTransport>::from(server_config, proxy_config).await?;
             server.run(shutdown_rx, update_rx).await?;
         }
         TransportType::Tls => {
             #[cfg(feature = "tls")]
             {
-                let mut server = Server::<TlsTransport>::from(config).await?;
+                let mut server = Server::<TlsTransport>::from(server_config, proxy_config).await?;
                 server.run(shutdown_rx, update_rx).await?;
             }
             #[cfg(not(feature = "tls"))]
@@ -68,7 +70,7 @@ pub async fn run_server(
         TransportType::Noise => {
             #[cfg(feature = "noise")]
             {
-                let mut server = Server::<NoiseTransport>::from(config).await?;
+                let mut server = Server::<NoiseTransport>::from(server_config, proxy_config).await?;
                 server.run(shutdown_rx, update_rx).await?;
             }
             #[cfg(not(feature = "noise"))]
@@ -77,7 +79,7 @@ pub async fn run_server(
         TransportType::Websocket => {
             #[cfg(feature = "websocket")]
             {
-                let mut server = Server::<WebsocketTransport>::from(config).await?;
+                let mut server = Server::<WebsocketTransport>::from(server_config, proxy_config).await?;
                 server.run(shutdown_rx, update_rx).await?;
             }
             #[cfg(not(feature = "websocket"))]
@@ -96,7 +98,7 @@ type ControlChannelMap<T> = MultiMap<ServiceDigest, Nonce, ControlChannelHandle<
 struct Server<T: Transport> {
     // `[server]` config
     config: Arc<ServerConfig>,
-
+    proxies: Arc<HashMap<String, HashMap<String, ProxyConfig>>>,
     // `[server.services]` config, indexed by ServiceDigest
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
     // Collection of contorl channels
@@ -118,13 +120,15 @@ fn generate_service_hashmap(
 
 impl<T: 'static + Transport> Server<T> {
     // Create a server from `[server]`
-    pub async fn from(config: ServerConfig) -> Result<Server<T>> {
-        let config = Arc::new(config);
-        let services = Arc::new(RwLock::new(generate_service_hashmap(&config)));
+    pub async fn from(server_config: ServerConfig, proxies: HashMap<String, HashMap<String, ProxyConfig>>) -> Result<Server<T>> {
+        let server_config = Arc::new(server_config);
+        let proxies = Arc::new(proxies);
+        let services = Arc::new(RwLock::new(generate_service_hashmap(&server_config)));
         let control_channels = Arc::new(RwLock::new(ControlChannelMap::new()));
-        let transport = Arc::new(T::new(&config.transport)?);
+        let transport = Arc::new(T::new(&server_config.transport)?);
         Ok(Server {
-            config,
+            config: server_config,
+            proxies,
             services,
             control_channels,
             transport,
@@ -151,6 +155,14 @@ impl<T: 'static + Transport> Server<T> {
             max_elapsed_time: None,
             ..Default::default()
         };
+
+        // Log initial services
+        let proxies = self.proxies.clone();
+        for (client_name, services) in proxies.iter() {
+            for (service_name, service_config) in services.iter() {
+                info!("client_name={}, service_name={}: {:?}", client_name, service_name, service_config);
+            }
+        }
 
         // Wait for connections and shutdown signals
         loop {
@@ -185,10 +197,11 @@ impl<T: 'static + Transport> Server<T> {
                                     match conn.with_context(|| "Failed to do transport handshake") {
                                         Ok(conn) => {
                                             let services = self.services.clone();
+                                            let proxies = self.proxies.clone();
                                             let control_channels = self.control_channels.clone();
                                             let server_config = self.config.clone();
                                             tokio::spawn(async move {
-                                                if let Err(err) = handle_connection(conn, services, control_channels, server_config).await {
+                                                if let Err(err) = handle_connection(conn, services, proxies, control_channels, server_config).await {
                                                     error!("{:#}", err);
                                                 }
                                             }.instrument(info_span!("connection", %addr)));
@@ -250,6 +263,7 @@ impl<T: 'static + Transport> Server<T> {
 async fn handle_connection<T: 'static + Transport>(
     mut conn: T::Stream,
     services: Arc<RwLock<HashMap<ServiceDigest, ServerServiceConfig>>>,
+    proxies: Arc<HashMap<String, HashMap<String, ProxyConfig>>>,
     control_channels: Arc<RwLock<ControlChannelMap<T>>>,
     server_config: Arc<ServerConfig>,
 ) -> Result<()> {
@@ -257,6 +271,7 @@ async fn handle_connection<T: 'static + Transport>(
     let hello = read_hello(&mut conn).await?;
     match hello {
         ControlChannelHello(_, service_digest) => {
+            debug!("server proxies: {:?}", proxies);
             do_control_channel_handshake(
                 conn,
                 services,

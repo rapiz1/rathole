@@ -4,3 +4,16 @@ default_token = "123"
 
 [server.services.foo1]
 bind_addr = "0.0.0.0:5202"
+
+[proxies.pve.ssh]
+bind_addr = "0.0.0.0:5001"
+local_addr = "127.0.0.1:22"
+
+[proxies.pve.rdp]
+bind_addr = "0.0.0.0:5002"
+local_addr = "127.0.0.1:3389"
+
+[proxies.router.web]
+bind_addr = "0.0.0.0:5003"
+local_addr = "127.0.0.1:80"
+
