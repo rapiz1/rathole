@@ -57,17 +57,17 @@ async fn tcp() -> Result<()> {
     test("tests/for_tcp/tcp_transport.toml", Type::Tcp).await?;
     // FIXME: Self-signed certificate on Mac requires mannual interference. Disable CI for now
     #[cfg(not(target_os = "macos"))]
-    #[cfg(feature="tls")]
+    #[cfg(any(feature = "native-tls", feature = "rustls"))]
     test("tests/for_tcp/tls_transport.toml", Type::Tcp).await?;
 
-    #[cfg(feature="noise")]
+    #[cfg(feature = "noise")]
     test("tests/for_tcp/noise_transport.toml", Type::Tcp).await?;
 
-    #[cfg(feature="websocket")]
+    #[cfg(feature = "websocket")]
     test("tests/for_tcp/websocket_transport.toml", Type::Tcp).await?;
 
     #[cfg(not(target_os = "macos"))]
-    #[cfg(feature="websocket")]
+    #[cfg(feature = "websocket")]
     test("tests/for_tcp/websocket_tls_transport.toml", Type::Tcp).await?;
 
     Ok(())
@@ -94,17 +94,17 @@ async fn udp() -> Result<()> {
     test("tests/for_udp/tcp_transport.toml", Type::Udp).await?;
     // See above
     #[cfg(not(target_os = "macos"))]
-    #[cfg(feature="tls")]
+    #[cfg(any(feature = "native-tls", feature = "rustls"))]
     test("tests/for_udp/tls_transport.toml", Type::Udp).await?;
 
-    #[cfg(feature="noise")]
+    #[cfg(feature = "noise")]
     test("tests/for_udp/noise_transport.toml", Type::Udp).await?;
 
-    #[cfg(feature="websocket")]
+    #[cfg(feature = "websocket")]
     test("tests/for_udp/websocket_transport.toml", Type::Udp).await?;
 
     #[cfg(not(target_os = "macos"))]
-    #[cfg(feature="websocket")]
+    #[cfg(feature = "websocket")]
     test("tests/for_udp/websocket_tls_transport.toml", Type::Udp).await?;
 
     Ok(())
