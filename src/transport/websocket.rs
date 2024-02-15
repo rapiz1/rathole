@@ -13,10 +13,17 @@ use futures_core::stream::Stream;
 use futures_sink::Sink;
 use tokio::io::{AsyncBufRead, AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
+
+#[cfg(all(feature = "native-tls-support", feature = "rustls-support"))]
+compile_error!("Only one of `native-tls-support` or `rustls-support` can be enabled");
+
+#[cfg(feature = "native-tls-support")]
 use tokio_native_tls::TlsStream;
-use tokio_tungstenite::tungstenite::protocol::WebSocketConfig;
-use tokio_tungstenite::{accept_async_with_config, client_async_with_config};
-use tokio_tungstenite::{tungstenite::protocol::Message, WebSocketStream};
+#[cfg(feature = "rustls-support")]
+use tokio_rustls::TlsStream;
+
+use tokio_tungstenite::tungstenite::protocol::{Message, WebSocketConfig};
+use tokio_tungstenite::{accept_async_with_config, client_async_with_config, WebSocketStream};
 use tokio_util::io::StreamReader;
 use url::Url;
 
@@ -30,7 +37,10 @@ impl TransportStream {
     fn get_tcpstream(&self) -> &TcpStream {
         match self {
             TransportStream::Insecure(s) => s,
+            #[cfg(feature = "native-tls-support")]
             TransportStream::Secure(s) => s.get_ref().get_ref().get_ref(),
+            #[cfg(feature = "rustls-support")]
+            TransportStream::Secure(s) => s.get_ref().0,
         }
     }
 }

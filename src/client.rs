@@ -8,8 +8,9 @@ use crate::protocol::{
 };
 use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
 use anyhow::{anyhow, bail, Context, Result};
+use backoff::backoff::Backoff;
+use backoff::future::retry_notify;
 use backoff::ExponentialBackoff;
-use backoff::{backoff::Backoff, future::retry_notify};
 use bytes::{Bytes, BytesMut};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -22,7 +23,7 @@ use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
-#[cfg(feature = "tls")]
+#[cfg(feature = "tls-support")]
 use crate::transport::TlsTransport;
 #[cfg(feature = "websocket")]
 use crate::transport::WebsocketTransport;
@@ -47,12 +48,12 @@ pub async fn run_client(
             client.run(shutdown_rx, update_rx).await
         }
         TransportType::Tls => {
-            #[cfg(feature = "tls")]
+            #[cfg(feature = "tls-support")]
             {
                 let mut client = Client::<TlsTransport>::from(config).await?;
                 client.run(shutdown_rx, update_rx).await
             }
-            #[cfg(not(feature = "tls"))]
+            #[cfg(not(feature = "tls-support"))]
             crate::helper::feature_not_compile("tls")
         }
         TransportType::Noise => {

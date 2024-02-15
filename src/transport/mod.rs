@@ -69,10 +69,12 @@ pub trait Transport: Debug + Send + Sync {
 
 mod tcp;
 pub use tcp::TcpTransport;
-#[cfg(feature = "tls")]
+
+#[cfg(feature = "tls-support")]
 mod tls;
-#[cfg(feature = "tls")]
-pub use tls::TlsTransport;
+
+#[cfg(feature = "tls-support")]
+pub(crate) use tls::TlsTransport;
 
 #[cfg(feature = "noise")]
 mod noise;

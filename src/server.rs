@@ -25,7 +25,7 @@ use tracing::{debug, error, info, info_span, instrument, warn, Instrument, Span}
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
-#[cfg(feature = "tls")]
+#[cfg(feature = "tls-support")]
 use crate::transport::TlsTransport;
 #[cfg(feature = "websocket")]
 use crate::transport::WebsocketTransport;
@@ -57,12 +57,12 @@ pub async fn run_server(
             server.run(shutdown_rx, update_rx).await?;
         }
         TransportType::Tls => {
-            #[cfg(feature = "tls")]
+            #[cfg(feature = "tls-support")]
             {
                 let mut server = Server::<TlsTransport>::from(config).await?;
                 server.run(shutdown_rx, update_rx).await?;
             }
-            #[cfg(not(feature = "tls"))]
+            #[cfg(not(feature = "tls-support"))]
             crate::helper::feature_not_compile("tls")
         }
         TransportType::Noise => {
