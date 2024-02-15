@@ -34,7 +34,6 @@ impl TransportStream {
     fn get_tcpstream(&self) -> &TcpStream {
         match self {
             TransportStream::Insecure(s) => s,
-
             TransportStream::Secure(s) => get_tcpstream(s),
         }
     }
