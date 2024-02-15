@@ -14,7 +14,7 @@ include = ["src/**/*", "LICENSE", "README.md", "build.rs"]
 default = [
     "server",
     "client",
-    "native-tls-support",
+    "native-tls",
     "noise",
     "websocket",
     "hot-reload",
@@ -26,23 +26,36 @@ server = []
 client = []
 
 # TLS support
-tls-support = []
-native-tls-support = ["tokio-native-tls", "tls-support"]
-rustls-support = [
+native-tls = ["tokio-native-tls"]
+rustls = [
     "tokio-rustls",
     "rustls-pemfile",
     "rustls-native-certs",
     "p12",
-    "tls-support",
 ]
 # original tls feature for backward compatibility
-tls = ["native-tls-support"]
+tls = ["native-tls"]
 
 # Noise support
 noise = ["snowstorm", "base64"]
 
 # Websocket support
-websocket = ["tokio-tungstenite", "tokio-util", "futures-core", "futures-sink"]
+websocket-native-tls = [
+    "tokio-tungstenite",
+    "tokio-util",
+    "futures-core",
+    "futures-sink",
+    "native-tls",
+]
+websocket-rustls = [
+    "tokio-tungstenite",
+    "tokio-util",
+    "futures-core",
+    "futures-sink",
+    "rustls",
+]
+# original websocket feature for backward compatibility
+websocket = ["websocket-native-tls"]
 
 # Configuration hot-reload support
 hot-reload = ["notify"]

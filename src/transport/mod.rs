@@ -70,10 +70,9 @@ pub trait Transport: Debug + Send + Sync {
 mod tcp;
 pub use tcp::TcpTransport;
 
-#[cfg(feature = "tls-support")]
+#[cfg(any(feature = "native-tls", feature = "rustls"))]
 mod tls;
-
-#[cfg(feature = "tls-support")]
+#[cfg(any(feature = "native-tls", feature = "rustls"))]
 pub(crate) use tls::TlsTransport;
 
 #[cfg(feature = "noise")]
@@ -81,9 +80,9 @@ mod noise;
 #[cfg(feature = "noise")]
 pub use noise::NoiseTransport;
 
-#[cfg(feature = "websocket")]
+#[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
 mod websocket;
-#[cfg(feature = "websocket")]
+#[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
 pub use websocket::WebsocketTransport;
 
 #[derive(Debug, Clone, Copy)]

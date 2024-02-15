@@ -25,9 +25,9 @@ use tracing::{debug, error, info, info_span, instrument, warn, Instrument, Span}
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
-#[cfg(feature = "tls-support")]
+#[cfg(any(feature = "native-tls", feature = "rustls"))]
 use crate::transport::TlsTransport;
-#[cfg(feature = "websocket")]
+#[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
 use crate::transport::WebsocketTransport;
 
 type ServiceDigest = protocol::Digest; // SHA256 of a service name
@@ -57,12 +57,12 @@ pub async fn run_server(
             server.run(shutdown_rx, update_rx).await?;
         }
         TransportType::Tls => {
-            #[cfg(feature = "tls-support")]
+            #[cfg(any(feature = "native-tls", feature = "rustls"))]
             {
                 let mut server = Server::<TlsTransport>::from(config).await?;
                 server.run(shutdown_rx, update_rx).await?;
             }
-            #[cfg(not(feature = "tls-support"))]
+            #[cfg(not(any(feature = "native-tls", feature = "rustls")))]
             crate::helper::feature_not_compile("tls")
         }
         TransportType::Noise => {
@@ -75,12 +75,12 @@ pub async fn run_server(
             crate::helper::feature_not_compile("noise")
         }
         TransportType::Websocket => {
-            #[cfg(feature = "websocket")]
+            #[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
             {
                 let mut server = Server::<WebsocketTransport>::from(config).await?;
                 server.run(shutdown_rx, update_rx).await?;
             }
-            #[cfg(not(feature = "websocket"))]
+            #[cfg(not(any(feature = "websocket-native-tls", feature = "websocket-rustls")))]
             crate::helper::feature_not_compile("websocket")
         }
     }

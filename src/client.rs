@@ -23,9 +23,9 @@ use tracing::{debug, error, info, instrument, trace, warn, Instrument, Span};
 
 #[cfg(feature = "noise")]
 use crate::transport::NoiseTransport;
-#[cfg(feature = "tls-support")]
+#[cfg(any(feature = "native-tls", feature = "rustls"))]
 use crate::transport::TlsTransport;
-#[cfg(feature = "websocket")]
+#[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
 use crate::transport::WebsocketTransport;
 
 use crate::constants::{run_control_chan_backoff, UDP_BUFFER_SIZE, UDP_SENDQ_SIZE, UDP_TIMEOUT};
@@ -48,12 +48,12 @@ pub async fn run_client(
             client.run(shutdown_rx, update_rx).await
         }
         TransportType::Tls => {
-            #[cfg(feature = "tls-support")]
+            #[cfg(any(feature = "native-tls", feature = "rustls"))]
             {
                 let mut client = Client::<TlsTransport>::from(config).await?;
                 client.run(shutdown_rx, update_rx).await
             }
-            #[cfg(not(feature = "tls-support"))]
+            #[cfg(not(any(feature = "native-tls", feature = "rustls")))]
             crate::helper::feature_not_compile("tls")
         }
         TransportType::Noise => {
@@ -66,12 +66,12 @@ pub async fn run_client(
             crate::helper::feature_not_compile("noise")
         }
         TransportType::Websocket => {
-            #[cfg(feature = "websocket")]
+            #[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
             {
                 let mut client = Client::<WebsocketTransport>::from(config).await?;
                 client.run(shutdown_rx, update_rx).await
             }
-            #[cfg(not(feature = "websocket"))]
+            #[cfg(not(any(feature = "websocket-native-tls", feature = "websocket-rustls")))]
             crate::helper::feature_not_compile("websocket")
         }
     }

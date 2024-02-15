@@ -1,11 +1,8 @@
-#[cfg(all(feature = "native-tls-support", feature = "rustls-support"))]
-compile_error!("Only one of `native-tls-support` and `rustls-support` can be enabled");
+#[cfg(all(feature = "native-tls", feature = "rustls"))]
+compile_error!("Only one of `native-tls` and `rustls` can be enabled");
 
-#[cfg(all(not(feature = "native-tls-support"), not(feature = "rustls-support")))]
-compile_error!("Either `native-tls-support` or `rustls-support` must be enabled");
-
-#[cfg(feature = "native-tls-support")]
-mod native_tls_support {
+#[cfg(feature = "native-tls")]
+mod native_tls {
     use crate::config::{TlsConfig, TransportConfig};
     use crate::helper::host_port_pair;
     use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
@@ -15,7 +12,8 @@ mod native_tls_support {
     use std::net::SocketAddr;
     use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
     use tokio_native_tls::native_tls::{self, Certificate, Identity};
-    use tokio_native_tls::{TlsAcceptor, TlsConnector, TlsStream};
+    pub(crate) use tokio_native_tls::TlsStream;
+    use tokio_native_tls::{TlsAcceptor, TlsConnector};
 
     #[derive(Debug)]
     pub struct TlsTransport {
@@ -116,13 +114,22 @@ mod native_tls_support {
                 .await?)
         }
     }
+
+    #[cfg(feature = "websocket-native-tls")]
+    pub(crate) fn get_tcpstream(s: &TlsStream<TcpStream>) -> &TcpStream {
+        s.get_ref().get_ref().get_ref()
+    }
 }
 
-#[cfg(feature = "native-tls-support")]
-pub(crate) use native_tls_support::TlsTransport;
+#[cfg(feature = "websocket-native-tls")]
+pub(crate) use native_tls::get_tcpstream;
+#[cfg(feature = "websocket-native-tls")]
+pub(crate) use native_tls::TlsStream;
+#[cfg(feature = "native-tls")]
+pub(crate) use native_tls::TlsTransport;
 
-#[cfg(feature = "rustls-support")]
-pub(crate) mod ruslts_support {
+#[cfg(feature = "rustls")]
+pub(crate) mod rustls_support {
     use crate::config::{TlsConfig, TransportConfig};
     use crate::helper::host_port_pair;
     use crate::transport::{AddrMaybeCached, SocketOpts, TcpTransport, Transport};
@@ -137,7 +144,8 @@ pub(crate) mod ruslts_support {
     use async_trait::async_trait;
     use p12::PFX;
     use tokio_rustls::rustls::{ClientConfig, RootCertStore, ServerConfig};
-    use tokio_rustls::{TlsAcceptor, TlsConnector, TlsStream};
+    pub(crate) use tokio_rustls::TlsStream;
+    use tokio_rustls::{TlsAcceptor, TlsConnector};
 
     pub struct TlsTransport {
         tcp: TcpTransport,
@@ -274,7 +282,15 @@ pub(crate) mod ruslts_support {
             ))
         }
     }
+
+    pub(crate) fn get_tcpstream(s: &TlsStream<TcpStream>) -> &TcpStream {
+        &s.get_ref().0
+    }
 }
 
-#[cfg(feature = "rustls-support")]
-pub(crate) use ruslts_support::TlsTransport;
+#[cfg(feature = "websocket-rustls")]
+pub(crate) use rustls_support::get_tcpstream;
+#[cfg(feature = "websocket-rustls")]
+pub(crate) use rustls_support::TlsStream;
+#[cfg(feature = "rustls")]
+pub(crate) use rustls_support::TlsTransport;
