@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use common::{run_rathole_client, PING, PONG};
 use rand::Rng;
 use std::time::Duration;
@@ -63,11 +63,11 @@ async fn tcp() -> Result<()> {
     #[cfg(feature = "noise")]
     test("tests/for_tcp/noise_transport.toml", Type::Tcp).await?;
 
-    #[cfg(feature = "websocket")]
+    #[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
     test("tests/for_tcp/websocket_transport.toml", Type::Tcp).await?;
 
     #[cfg(not(target_os = "macos"))]
-    #[cfg(feature = "websocket")]
+    #[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
     test("tests/for_tcp/websocket_tls_transport.toml", Type::Tcp).await?;
 
     Ok(())
@@ -100,11 +100,11 @@ async fn udp() -> Result<()> {
     #[cfg(feature = "noise")]
     test("tests/for_udp/noise_transport.toml", Type::Udp).await?;
 
-    #[cfg(feature = "websocket")]
+    #[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
     test("tests/for_udp/websocket_transport.toml", Type::Udp).await?;
 
     #[cfg(not(target_os = "macos"))]
-    #[cfg(feature = "websocket")]
+    #[cfg(any(feature = "websocket-native-tls", feature = "websocket-rustls"))]
     test("tests/for_udp/websocket_tls_transport.toml", Type::Udp).await?;
 
     Ok(())
@@ -112,6 +112,11 @@ async fn udp() -> Result<()> {
 
 #[instrument]
 async fn test(config_path: &'static str, t: Type) -> Result<()> {
+    if cfg!(not(all(feature = "client", feature = "server"))) {
+        // Skip the test if the client or the server is not enabled
+        return Ok(());
+    }
+
     let (client_shutdown_tx, client_shutdown_rx) = broadcast::channel(1);
     let (server_shutdown_tx, server_shutdown_rx) = broadcast::channel(1);
 
