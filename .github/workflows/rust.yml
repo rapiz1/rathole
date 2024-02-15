@@ -65,11 +65,10 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       - name: Build
         run: cargo build
-      - name: Run tests
-        run: |
-          cargo test --verbose
-          cargo test --verbose --no-default-features \
-              --features server,client,rustls,noise,websocket-rustls,hot-reload
+      - name: Run tests with native-tls
+        run: cargo test --verbose
+      - name: Run tests with rustls
+        run: cargo test --verbose --no-default-features --features server,client,rustls,noise,websocket-rustls,hot-reload
       - uses: actions/upload-artifact@v2
         with:
           name: rathole-${{ matrix.target }}
