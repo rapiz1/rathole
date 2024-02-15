@@ -54,7 +54,7 @@ pub async fn run_client(
                 client.run(shutdown_rx, update_rx).await
             }
             #[cfg(not(any(feature = "native-tls", feature = "rustls")))]
-            crate::helper::feature_not_compile("tls")
+            crate::helper::feature_neither_compile("native-tls", "rustls")
         }
         TransportType::Noise => {
             #[cfg(feature = "noise")]
@@ -72,7 +72,7 @@ pub async fn run_client(
                 client.run(shutdown_rx, update_rx).await
             }
             #[cfg(not(any(feature = "websocket-native-tls", feature = "websocket-rustls")))]
-            crate::helper::feature_not_compile("websocket")
+            crate::helper::feature_neither_compile("websocket-native-tls", "websocket-rustls")
         }
     }
 }
