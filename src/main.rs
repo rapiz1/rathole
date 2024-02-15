@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::Parser;
 use rathole::{run, Cli};
 use tokio::{signal, sync::broadcast};
-#[cfg(not(feature = "console"))]
 use tracing_subscriber::EnvFilter;
 
 #[tokio::main]
