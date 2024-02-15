@@ -160,13 +160,13 @@ pub(crate) mod ruslts_support {
         if let Some(pkcs12_path) = config.pkcs12.as_ref() {
             let buf = fs::read(pkcs12_path)?;
             let pfx = PFX::parse(buf.as_slice())?;
-            let pass = config.pkcs12_password.as_ref()?;
+            let pass = config.pkcs12_password.as_ref().unwrap();
 
             let certs = pfx.cert_bags(pass)?;
             let keys = pfx.key_bags(pass)?;
 
             let chain: Vec<CertificateDer> = certs.into_iter().map(CertificateDer::from).collect();
-            let key = PrivatePkcs8KeyDer::from(keys.into_iter().next()?);
+            let key = PrivatePkcs8KeyDer::from(keys.into_iter().next().unwrap());
 
             Ok(Some(
                 ServerConfig::builder()
