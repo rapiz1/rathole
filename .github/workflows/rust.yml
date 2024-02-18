@@ -35,7 +35,6 @@ jobs:
         run: >
           cargo hack check --feature-powerset --no-dev-deps
           --mutually-exclusive-features default,native-tls,websocket-native-tls,rustls,websocket-rustls
-          --skip tls,websocket
 
   build:
     name: Build for ${{ matrix.target }}

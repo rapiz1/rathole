@@ -33,8 +33,6 @@ rustls = [
     "rustls-native-certs",
     "p12",
 ]
-# original tls feature for backward compatibility
-tls = ["native-tls"]
 
 # Noise support
 noise = ["snowstorm", "base64"]
@@ -54,8 +52,6 @@ websocket-rustls = [
     "futures-sink",
     "rustls",
 ]
-# original websocket feature for backward compatibility
-websocket = ["websocket-native-tls"]
 
 # Configuration hot-reload support
 hot-reload = ["notify"]

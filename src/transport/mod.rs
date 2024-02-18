@@ -70,8 +70,18 @@ pub trait Transport: Debug + Send + Sync {
 mod tcp;
 pub use tcp::TcpTransport;
 
-#[cfg(any(feature = "native-tls", feature = "rustls"))]
-mod tls;
+#[cfg(all(feature = "native-tls", feature = "rustls"))]
+compile_error!("Only one of `native-tls` and `rustls` can be enabled");
+
+#[cfg(feature = "native-tls")]
+mod native_tls;
+#[cfg(feature = "native-tls")]
+use native_tls as tls;
+#[cfg(feature = "rustls")]
+mod rustls;
+#[cfg(feature = "rustls")]
+use rustls as tls;
+
 #[cfg(any(feature = "native-tls", feature = "rustls"))]
 pub(crate) use tls::TlsTransport;
 
