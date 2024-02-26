@@ -39,12 +39,12 @@ Creating self-signed certificate with one's own CA is a non-trival task. However
 
 From version x.x.x, `rathole` provides optional `rustls` support. [Build Guide](build-guide.md) demostrated this.
 
-One difference is that, the crate we use for loading PKCS#12 archives can only handle limited types of PBE algorithms. We only support PKCS#12 archives that they (crate `p12`) support. So we need to specify the PBE algorithm when creating the PKCS#12 archive.
+One difference is that, the crate we use for loading PKCS#12 archives can only handle limited types of PBE algorithms. We only support PKCS#12 archives that they (crate `p12`) support. So we need to specify the legacy format (openssl 1.x format) when creating the PKCS#12 archive.
 
-In short, the command to create the PKCS#12 archive with `rustls` support is:
+In short, the command used with openssl 3 to create the PKCS#12 archive with `rustls` support is:
 
 ```sh
-openssl pkcs12 -export -out identity.pfx -inkey server.key -in server.crt -certfile ca_chain_certs.crt -keypbe PBE-SHA1-3DES -certpbe PBE-SHA1-3DES
+openssl pkcs12 -export -out identity.pfx -inkey server.key -in server.crt -certfile ca_chain_certs.crt -legacy
 ```
 
 ## Noise Protocol
