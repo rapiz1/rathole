@@ -24,7 +24,7 @@ cargo build --release --no-default-features --features client,noise
 
 ## Rustls Support
 
-From version x.x.x, `rathole` provides optional `rustls` support. It's an almost drop-in replacement of `native-tls` support. (See [Transport](transport.md) for more information.)
+`rathole` provides optional `rustls` support. It's an almost drop-in replacement of `native-tls` support. (See [Transport](transport.md) for more information.)
 
 To enable this, disable the default features and enable `rustls` feature. And for websocket feature, enable `websocket-rustls` feature as well.
 

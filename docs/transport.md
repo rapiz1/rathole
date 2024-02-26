@@ -37,7 +37,7 @@ Creating self-signed certificate with one's own CA is a non-trival task. However
 
 ### Rustls Support
 
-From version x.x.x, `rathole` provides optional `rustls` support. [Build Guide](build-guide.md) demostrated this.
+`rathole` provides optional `rustls` support. [Build Guide](build-guide.md) demostrated this.
 
 One difference is that, the crate we use for loading PKCS#12 archives can only handle limited types of PBE algorithms. We only support PKCS#12 archives that they (crate `p12`) support. So we need to specify the legacy format (openssl 1.x format) when creating the PKCS#12 archive.
 
